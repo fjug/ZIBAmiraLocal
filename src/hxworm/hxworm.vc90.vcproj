@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="9.00"
+	Name="hxworm"
+	ProjectGUID="{52EF9B80-9E8A-2E0A-2830-03E203235313}"
+	RootNamespace="hxworm"
+	>
+	<Platforms>
+		<Platform
+			Name="x64"/>
+	</Platforms>
+	<Configurations>
+		<Configuration
+			Name="Release|x64"
+			OutputDirectory="./../.././bin/arch-Win64VC9-Optimize"
+			IntermediateDirectory="./../../obj/arch-Win64VC9-Optimize/hxworm"
+			ConfigurationType="2"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="FALSE">
+			<Tool
+				Name="VCCLCompilerTool"
+				
+        AdditionalOptions="/bigobj "
+        InlineFunctionExpansion="1"
+        EnableIntrinsicFunctions="true"
+        OmitFramePointers="true"
+        StringPooling="TRUE"
+        RuntimeLibrary="2"
+        BufferSecurityCheck="false"
+        DebugInformationFormat="3"
+        EnableFunctionLevelLinking="TRUE"
+        Detect64BitPortabilityProblems="FALSE"
+        OpenMP="true"
+        Optimization="2"
+   
+				AdditionalIncludeDirectories="../../obj/arch-Win64VC9-Optimize,../../src,C:/Program Files/ZIBAmira 2013.55/include,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/oiv,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/pthread,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/ActiveQt,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/Qt3Support,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtCore,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtDBus,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtDesigner,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtGui,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtNetwork,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtOpenGL,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtScript,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtSql,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtSvg,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtTest,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtUiTools,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtXml,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtXmlPatterns,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtWebKit,C:/Program Files/ZIBAmira 2013.55/python/include,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/cuda,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Algorithms,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Common,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/BasicFilters,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/IO,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics/FEM,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics/NeuralNetworks,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics/Statistics,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/SpatialObject,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/MetaIO,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/NrrdIO,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/expat,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/itkExtHdrs,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/vxl/core,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/vxl/vcl,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/vxl/v3p/netlib,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/gdcm,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/gdcm/src"
+				PreprocessorDefinitions="NDEBUG,_WINDOWS,WIN32,WIN64,NOMINMAX,BOOST_ALL_DYN_LINK,QT_DLL,QT_THREAD_SUPPORT,STRICT,NEWSTYLE_IOSTREAM,HX_NO_MATHF,HX_HAS_ACML,HX_HAS_STD,HX_HAS_STDCOMPLEX,HX_HAS_STDIOSTREAM,HX_NO_X11,HX_OS_WIN,HX_LITTLE_ENDIAN,AMIRA64,_CRT_SECURE_NO_DEPRECATE,_SCL_SECURE_NO_WARNINGS,_HDF5USEDLL_,YY_NO_UNISTD_H,USE_NON_CONST,HXWORM_EXPORTS,_SECURE_SCL=0"
+				RuntimeTypeInfo="TRUE"
+				UsePrecompiledHeader="0"
+				AssemblerListingLocation="./../../obj/arch-Win64VC9-Optimize/hxworm/"
+				ObjectFile="./../../obj/arch-Win64VC9-Optimize/hxworm/"
+				ProgramDataBaseFileName="./../.././bin/arch-Win64VC9-Optimize/hxworm.pdb"
+				SuppressStartupBanner="TRUE"
+				WarningLevel="3"
+				DisableSpecificWarnings="4068;4251;4275;4800"
+				CompileAs="0"/>
+			<Tool
+				Name="VCCustomBuildTool"/>
+			<Tool
+				Name="VCLinkerTool"
+				
+		LinkIncremental="1"
+   
+				AdditionalDependencies="ws2_32.lib msvcprt.lib oldnames.lib odbc32.lib odbccp32.lib msvcrt.lib hxarith.lib hximproc.lib hxfield.lib hxsurface.lib hxconvexhull.lib hxlandmark.lib hxsurftools.lib hxsurfacepath.lib hxsurfacepathedit.lib hxsurfacepathtools.lib hxcluster.lib hxlines.lib hxcolor.lib hxskeletonold.lib hxskeleton.lib hxneurontree.lib hxlatticex.lib hxlatticexbase.lib hxdistmap.lib hxiso.lib hxsurfedit.lib hxsegeditor.lib hxremesh.lib hxvectools.lib hxsurfremesh.lib hxsurffeatures.lib hxlinetools2.lib hxtime.lib hxivdata.lib hxcore.lib hxtransforms.lib hxivshapes.lib amiramesh.lib anna.lib mclib.lib QAxContainer.lib QAxServer.lib Qt3Support4.lib QtAssistantClient4.lib QtCore4.lib QtDesigner4.lib QtDesignerComponents4.lib QtGui4.lib QtNetwork4.lib QtOpenGL4.lib QtSql4.lib QtSvg4.lib QtTest4.lib QtUiTools.lib QtXml4.lib QtXmlPatterns4.lib QtWebKit4.lib qtmain.lib tcl85t.lib InventorBase.lib InventorGL.lib Inventor.lib ScaleViz.lib InventorGui.lib InventorQt4.lib FXViz.lib MeshViz.lib VolumeViz.lib LDM.lib opengl32.lib glu32.lib hxactivesurf.lib hxactiveseg.lib hxght.lib empackage.lib hxlattice.lib hxtetra.lib graphmatching.lib vcomp.lib hxactiveshape.lib"
+				OutputFile="../.././bin/arch-Win64VC9-Optimize/hxworm.dll"
+				SuppressStartupBanner="TRUE"
+				AdditionalLibraryDirectories="../.././bin/arch-Win64VC9-Optimize,C:/Program Files/ZIBAmira 2013.55/bin/arch-Win64VC9-Optimize"
+				IgnoreAllDefaultLibraries="TRUE"
+				ModuleDefinitionFile=""
+				ProgramDatabaseFile=".\../.././bin/arch-Win64VC9-Optimize/hxworm.pdb"
+				SubSystem="2"
+				EntryPointSymbol=""
+				TargetMachine="17"
+				LargeAddressAware="2"
+				AdditionalOptions=""
+				ImportLibrary=".\../.././bin/arch-Win64VC9-Optimize/hxworm.lib"/>
+			<Tool
+				Name="VCMIDLTool"
+				
+		PreprocessorDefinitions="NDEBUG"
+   
+				MkTypLibCompatible="TRUE"
+				SuppressStartupBanner="TRUE"
+				TargetEnvironment="1"
+				TypeLibraryName=".\../.././bin/arch-Win64VC9-Optimize/hxworm.tlb"/>
+			<Tool
+				Name="VCPostBuildEventTool"
+				Description="running user defined taglib"
+				CommandLine="&quot;C:\Program Files\ZIBAmira 2013.55\bin\arch-Win64VC9-Optimize\taglib&quot; -update -tagdel version_tag -tagdel version_patch -tagdel product -tagdel version_minor -tagdel version_major -tagdel vendor &quot;../.././bin/arch-Win64VC9-Optimize/hxworm.dll&quot;"/>
+			<Tool
+				Name="VCPreBuildEventTool"
+				Description="Building hxworm"
+				CommandLine=""/>
+			<Tool
+				Name="VCPreLinkEventTool"/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				
+		PreprocessorDefinitions="NDEBUG"
+   
+				Culture="1031"/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
+				Name="VCWebDeploymentTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+		</Configuration>
+		<Configuration
+			Name="Debug|x64"
+			OutputDirectory="./../.././bin/arch-Win64VC9-Debug"
+			IntermediateDirectory="./../../obj/arch-Win64VC9-Debug/hxworm"
+			ConfigurationType="2"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="FALSE">
+			<Tool
+				Name="VCCLCompilerTool"
+				
+        AdditionalOptions= "/bigobj "
+        Optimization="0"
+        BasicRuntimeChecks="2"
+        RuntimeLibrary="3"
+        DebugInformationFormat="3"
+        Detect64BitPortabilityProblems="FALSE"
+   
+				AdditionalIncludeDirectories="../../obj/arch-Win64VC9-Debug,../../src,C:/Program Files/ZIBAmira 2013.55/include,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/oiv,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/pthread,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/ActiveQt,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/Qt3Support,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtCore,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtDBus,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtDesigner,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtGui,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtNetwork,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtOpenGL,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtScript,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtSql,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtSvg,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtTest,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtUiTools,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtXml,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtXmlPatterns,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtWebKit,C:/Program Files/ZIBAmira 2013.55/python/include,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/cuda,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Algorithms,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Common,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/BasicFilters,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/IO,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics/FEM,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics/NeuralNetworks,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics/Statistics,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/SpatialObject,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/MetaIO,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/NrrdIO,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/expat,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/itkExtHdrs,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/vxl/core,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/vxl/vcl,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/vxl/v3p/netlib,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/gdcm,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/gdcm/src"
+				PreprocessorDefinitions="_WINDOWS,WIN32,WIN64,NOMINMAX,BOOST_ALL_DYN_LINK,QT_DLL,QT_THREAD_SUPPORT,STRICT,NEWSTYLE_IOSTREAM,HX_NO_MATHF,HX_HAS_ACML,HX_HAS_STD,HX_HAS_STDCOMPLEX,HX_HAS_STDIOSTREAM,HX_NO_X11,HX_OS_WIN,HX_LITTLE_ENDIAN,AMIRA64,_CRT_SECURE_NO_DEPRECATE,_SCL_SECURE_NO_WARNINGS,_HDF5USEDLL_,YY_NO_UNISTD_H,USE_NON_CONST,HXWORM_EXPORTS"
+				RuntimeTypeInfo="TRUE"
+				UsePrecompiledHeader="0"
+				AssemblerListingLocation="./../../obj/arch-Win64VC9-Debug/hxworm/"
+				ObjectFile="./../../obj/arch-Win64VC9-Debug/hxworm/"
+				ProgramDataBaseFileName="./../.././bin/arch-Win64VC9-Debug/hxworm.pdb"
+				SuppressStartupBanner="TRUE"
+				WarningLevel="3"
+				DisableSpecificWarnings="4068;4251;4275;4800"
+				CompileAs="0"/>
+			<Tool
+				Name="VCCustomBuildTool"/>
+			<Tool
+				Name="VCLinkerTool"
+				
+		LinkIncremental="2"
+		GenerateDebugInformation="TRUE"
+   
+				AdditionalDependencies="ws2_32.lib msvcprtd.lib oldnames.lib odbc32.lib odbccp32.lib msvcrtd.lib hxarith.lib hximproc.lib hxfield.lib hxsurface.lib hxconvexhull.lib hxlandmark.lib hxsurftools.lib hxsurfacepath.lib hxsurfacepathedit.lib hxsurfacepathtools.lib hxcluster.lib hxlines.lib hxcolor.lib hxskeletonold.lib hxskeleton.lib hxneurontree.lib hxlatticex.lib hxlatticexbase.lib hxdistmap.lib hxiso.lib hxsurfedit.lib hxsegeditor.lib hxremesh.lib hxvectools.lib hxsurfremesh.lib hxsurffeatures.lib hxlinetools2.lib hxtime.lib hxivdata.lib hxcore.lib hxtransforms.lib hxivshapes.lib amiramesh.lib anna.lib mclib.lib QAxContainerd.lib QAxServerd.lib Qt3Supportd4.lib QtAssistantClientd4.lib QtCored4.lib QtDesignerComponentsd4.lib QtDesignerd4.lib QtGuid4.lib QtNetworkd4.lib QtOpenGLd4.lib QtSqld4.lib QtSvgd4.lib QtTestd4.lib QtXmld4.lib QtXmlPatternsd4.lib QtWebKitd4.lib qtmaind.lib tcl85t.lib InventorBaseD.lib InventorGLD.lib InventorD.lib ScaleVizD.lib InventorGuiD.lib InventorQt4D.lib FXVizD.lib MeshVizD.lib VolumeVizD.lib LDMD.lib opengl32.lib glu32.lib hxactivesurf.lib hxactiveseg.lib hxght.lib empackage.lib hxlattice.lib hxtetra.lib graphmatching.lib vcompd.lib hxactiveshape.lib"
+				OutputFile="../.././bin/arch-Win64VC9-Debug/hxworm.dll"
+				SuppressStartupBanner="TRUE"
+				AdditionalLibraryDirectories="../.././bin/arch-Win64VC9-Debug,C:/Program Files/ZIBAmira 2013.55/bin/arch-Win64VC9-Debug"
+				IgnoreAllDefaultLibraries="TRUE"
+				ModuleDefinitionFile=""
+				ProgramDatabaseFile=".\../.././bin/arch-Win64VC9-Debug/hxworm.pdb"
+				SubSystem="2"
+				EntryPointSymbol=""
+				TargetMachine="17"
+				LargeAddressAware="2"
+				AdditionalOptions=""
+				ImportLibrary=".\../.././bin/arch-Win64VC9-Debug/hxworm.lib"/>
+			<Tool
+				Name="VCMIDLTool"
+				
+		PreprocessorDefinitions="_DEBUG"
+   
+				MkTypLibCompatible="TRUE"
+				SuppressStartupBanner="TRUE"
+				TargetEnvironment="1"
+				TypeLibraryName=".\../.././bin/arch-Win64VC9-Debug/hxworm.tlb"/>
+			<Tool
+				Name="VCPostBuildEventTool"
+				Description="running user defined taglib"
+				CommandLine="&quot;C:\Program Files\ZIBAmira 2013.55\bin\arch-Win64VC9-Optimize\taglib&quot; -update -tagdel version_tag -tagdel version_patch -tagdel product -tagdel version_minor -tagdel version_major -tagdel vendor &quot;../.././bin/arch-Win64VC9-Debug/hxworm.dll&quot;"/>
+			<Tool
+				Name="VCPreBuildEventTool"
+				Description="Building hxworm"
+				CommandLine=""/>
+			<Tool
+				Name="VCPreLinkEventTool"/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				
+		PreprocessorDefinitions="_DEBUG"
+   
+				Culture="1031"/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
+				Name="VCWebDeploymentTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+ <Files>
+		<Filter
+			Name="Source"
+			Filter="cu;cl;cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;h;hpp;hxx;hm;inl">
+			<File
+				RelativePath="HxAlignWorms.cpp">
+			</File>
+			<File
+				RelativePath="HxAlignWorms.h">
+			</File>
+			<File
+				RelativePath="HxEditNuclei.cpp">
+			</File>
+			<File
+				RelativePath="HxEditNuclei.h">
+			</File>
+			<File
+				RelativePath="HxNucleiHypotheses.cpp">
+			</File>
+			<File
+				RelativePath="HxNucleiHypotheses.h">
+			</File>
+			<File
+				RelativePath="HxSegmentNuclei.cpp">
+			</File>
+			<File
+				RelativePath="HxSegmentNuclei.h">
+			</File>
+			<File
+				RelativePath="HxSelectEllipses.cpp">
+			</File>
+			<File
+				RelativePath="HxSelectEllipses.h">
+			</File>
+			<File
+				RelativePath="HxStandardizeWorm.cpp">
+			</File>
+			<File
+				RelativePath="HxStandardizeWorm.h">
+			</File>
+			<File
+				RelativePath="HxWormAtlasReg.cpp">
+			</File>
+			<File
+				RelativePath="HxWormAtlasReg.h">
+			</File>
+			<File
+				RelativePath="WormHelpers.cpp">
+			</File>
+			<File
+				RelativePath="WormHelpers.h">
+			</File>
+			<File
+				RelativePath="api.h">
+			</File>
+			<File
+				RelativePath="init.cpp">
+			</File>
+			<File
+				RelativePath="version.cpp">
+			</File>
+			<File
+				RelativePath="winversion.h">
+			</File>
+			<File
+				RelativePath="winversion.rc">
+			</File>
+</Filter>
+    <Filter
+			Name="Intermediate"
+			Filter="">
+</Filter>
+    <Filter
+			Name="Share/Data"
+			Filter="">
+			<File
+				RelativePath="share\resources\hxworm.rc">
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="copying share\resources\hxworm.rc"
+						Outputs="..\..\.\share\resources\hxworm.rc"
+						CommandLine="rem IncrediBuild_RunFirst&#x0D;&#x0A;type &quot;share\resources\hxworm.rc&quot; >&quot;..\..\.\share\resources\hxworm.rc-tmp&quot;&#x0D;&#x0A;move /y &quot;..\..\.\share\resources\hxworm.rc-tmp&quot; &quot;..\..\.\share\resources\hxworm.rc&quot; >NUL"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="copying share\resources\hxworm.rc"
+						Outputs="..\..\.\share\resources\hxworm.rc"
+						CommandLine="rem IncrediBuild_RunFirst&#x0D;&#x0A;type &quot;share\resources\hxworm.rc&quot; >&quot;..\..\.\share\resources\hxworm.rc-tmp&quot;&#x0D;&#x0A;move /y &quot;..\..\.\share\resources\hxworm.rc-tmp&quot; &quot;..\..\.\share\resources\hxworm.rc&quot; >NUL"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="share\script-objects\SegmentNuclei.rc">
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="copying share\script-objects\SegmentNuclei.rc"
+						Outputs="..\..\.\share\script-objects\SegmentNuclei.rc"
+						CommandLine="rem IncrediBuild_RunFirst&#x0D;&#x0A;type &quot;share\script-objects\SegmentNuclei.rc&quot; >&quot;..\..\.\share\script-objects\SegmentNuclei.rc-tmp&quot;&#x0D;&#x0A;move /y &quot;..\..\.\share\script-objects\SegmentNuclei.rc-tmp&quot; &quot;..\..\.\share\script-objects\SegmentNuclei.rc&quot; >NUL"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="copying share\script-objects\SegmentNuclei.rc"
+						Outputs="..\..\.\share\script-objects\SegmentNuclei.rc"
+						CommandLine="rem IncrediBuild_RunFirst&#x0D;&#x0A;type &quot;share\script-objects\SegmentNuclei.rc&quot; >&quot;..\..\.\share\script-objects\SegmentNuclei.rc-tmp&quot;&#x0D;&#x0A;move /y &quot;..\..\.\share\script-objects\SegmentNuclei.rc-tmp&quot; &quot;..\..\.\share\script-objects\SegmentNuclei.rc&quot; >NUL"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="share\script-objects\SegmentNuclei.scro">
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="copying share\script-objects\SegmentNuclei.scro"
+						Outputs="..\..\.\share\script-objects\SegmentNuclei.scro"
+						CommandLine="rem IncrediBuild_RunFirst&#x0D;&#x0A;type &quot;share\script-objects\SegmentNuclei.scro&quot; >&quot;..\..\.\share\script-objects\SegmentNuclei.scro-tmp&quot;&#x0D;&#x0A;move /y &quot;..\..\.\share\script-objects\SegmentNuclei.scro-tmp&quot; &quot;..\..\.\share\script-objects\SegmentNuclei.scro&quot; >NUL"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="copying share\script-objects\SegmentNuclei.scro"
+						Outputs="..\..\.\share\script-objects\SegmentNuclei.scro"
+						CommandLine="rem IncrediBuild_RunFirst&#x0D;&#x0A;type &quot;share\script-objects\SegmentNuclei.scro&quot; >&quot;..\..\.\share\script-objects\SegmentNuclei.scro-tmp&quot;&#x0D;&#x0A;move /y &quot;..\..\.\share\script-objects\SegmentNuclei.scro-tmp&quot; &quot;..\..\.\share\script-objects\SegmentNuclei.scro&quot; >NUL"
+					/>
+				</FileConfiguration>
+			</File>
+</Filter>
+    <Filter
+			Name="Copy"
+			Filter="">
+</Filter>
+		<Filter
+			Name="Custom"
+			Filter="">
+		</Filter>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

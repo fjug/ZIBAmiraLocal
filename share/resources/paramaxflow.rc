@@ -1,0 +1,19 @@
+################################################################################
+#
+# Resource file of custom package paramaxflow
+#
+################################################################################
+
+
+module -name     "Parametric MaxFlow" \
+       -primary  "HxUniformScalarField3" \
+       -class    "Paramaxflow" \
+       -category "Local" \
+       -package  "paramaxflow"
+
+
+module -name     "Parametric MaxFlow with probability cut-map" \
+       -primary  "HxUniformScalarField3" \
+       -class    "ParamaxflowWithMap" \
+       -category "Local" \
+       -package  "paramaxflow"

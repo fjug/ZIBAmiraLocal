@@ -1,0 +1,93 @@
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "graphmatching", "src\graphmatching\graphmatching.vc90.vcproj", "{52EF9B80-9E8A-252F-2338-03E233739363}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hxworm", "src\hxworm\hxworm.vc90.vcproj", "{52EF9B80-9E8A-2E0A-2830-03E203235313}"
+	ProjectSection(ProjectDependencies) = postProject
+		{52EF9B80-9E8A-252F-2338-03E233739363} = {52EF9B80-9E8A-252F-2338-03E233739363}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "myitkpackage", "src\myitkpackage\myitkpackage.vc90.vcproj", "{52EF9B80-9E8B-3B81-2738-03E283836323}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mypackage", "src\mypackage\mypackage.vc90.vcproj", "{52EF9B80-9E8B-47B0-2930-03E223433373}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "paramaxflow", "src\paramaxflow\paramaxflow.vc90.vcproj", "{52EF9B80-9E8B-5184-2838-03E263131383}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "docZIBAmiraLocal", ".\docZIBAmiraLocal.vc90.vcproj", "{52EF9B80-9E8C-5884-2231-03E253231313}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "allZIBAmiraLocal", ".\allZIBAmiraLocal.vc90.vcproj", "{52EF9B80-9E8C-5868-2035-03E273530393}"
+	ProjectSection(ProjectDependencies) = postProject
+		{52EF9B80-9E8A-252F-2338-03E233739363} = {52EF9B80-9E8A-252F-2338-03E233739363}
+		{52EF9B80-9E8A-2E0A-2830-03E203235313} = {52EF9B80-9E8A-2E0A-2830-03E203235313}
+		{52EF9B80-9E8B-3B81-2738-03E283836323} = {52EF9B80-9E8B-3B81-2738-03E283836323}
+		{52EF9B80-9E8B-47B0-2930-03E223433373} = {52EF9B80-9E8B-47B0-2930-03E223433373}
+		{52EF9B80-9E8B-5184-2838-03E263131383} = {52EF9B80-9E8B-5184-2838-03E263131383}
+		{52EF9B80-9E8C-5884-2231-03E253231313} = {52EF9B80-9E8C-5884-2231-03E253231313}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "graphmatching", "graphmatching", "{52EF9B80-9E8C-59B7-2132-03E283337363}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "hxworm", "hxworm", "{52EF9B80-9E8C-59C7-2032-03E273833303}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "myitkpackage", "myitkpackage", "{52EF9B80-9E8C-2318-2238-03E273736313}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "mypackage", "mypackage", "{52EF9B80-9E8C-231E-2134-03E213534343}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "paramaxflow", "paramaxflow", "{52EF9B80-9E8C-2325-2730-03E263030313}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{52EF9B80-9E8A-252F-2338-03E233739363}.Debug|x64.ActiveCfg = Debug|x64
+		{52EF9B80-9E8A-252F-2338-03E233739363}.Debug|x64.Build.0 = Debug|x64
+		{52EF9B80-9E8A-252F-2338-03E233739363}.Release|x64.ActiveCfg = Release|x64
+		{52EF9B80-9E8A-252F-2338-03E233739363}.Release|x64.Build.0 = Release|x64
+		{52EF9B80-9E8A-2E0A-2830-03E203235313}.Debug|x64.ActiveCfg = Debug|x64
+		{52EF9B80-9E8A-2E0A-2830-03E203235313}.Debug|x64.Build.0 = Debug|x64
+		{52EF9B80-9E8A-2E0A-2830-03E203235313}.Release|x64.ActiveCfg = Release|x64
+		{52EF9B80-9E8A-2E0A-2830-03E203235313}.Release|x64.Build.0 = Release|x64
+		{52EF9B80-9E8B-3B81-2738-03E283836323}.Debug|x64.ActiveCfg = Debug|x64
+		{52EF9B80-9E8B-3B81-2738-03E283836323}.Debug|x64.Build.0 = Debug|x64
+		{52EF9B80-9E8B-3B81-2738-03E283836323}.Release|x64.ActiveCfg = Release|x64
+		{52EF9B80-9E8B-3B81-2738-03E283836323}.Release|x64.Build.0 = Release|x64
+		{52EF9B80-9E8B-47B0-2930-03E223433373}.Debug|x64.ActiveCfg = Debug|x64
+		{52EF9B80-9E8B-47B0-2930-03E223433373}.Debug|x64.Build.0 = Debug|x64
+		{52EF9B80-9E8B-47B0-2930-03E223433373}.Release|x64.ActiveCfg = Release|x64
+		{52EF9B80-9E8B-47B0-2930-03E223433373}.Release|x64.Build.0 = Release|x64
+		{52EF9B80-9E8B-5184-2838-03E263131383}.Debug|x64.ActiveCfg = Debug|x64
+		{52EF9B80-9E8B-5184-2838-03E263131383}.Debug|x64.Build.0 = Debug|x64
+		{52EF9B80-9E8B-5184-2838-03E263131383}.Release|x64.ActiveCfg = Release|x64
+		{52EF9B80-9E8B-5184-2838-03E263131383}.Release|x64.Build.0 = Release|x64
+		{52EF9B80-9E8C-5884-2231-03E253231313}.Debug|x64.ActiveCfg = Debug|x64
+		{52EF9B80-9E8C-5884-2231-03E253231313}.Debug|x64.Build.0 = Debug|x64
+		{52EF9B80-9E8C-5884-2231-03E253231313}.Release|x64.ActiveCfg = Release|x64
+		{52EF9B80-9E8C-5884-2231-03E253231313}.Release|x64.Build.0 = Release|x64
+		{52EF9B80-9E8C-5868-2035-03E273530393}.Debug|x64.ActiveCfg = Debug|x64
+		{52EF9B80-9E8C-5868-2035-03E273530393}.Debug|x64.Build.0 = Debug|x64
+		{52EF9B80-9E8C-5868-2035-03E273530393}.Release|x64.ActiveCfg = Release|x64
+		{52EF9B80-9E8C-5868-2035-03E273530393}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{52EF9B80-9E8A-252F-2338-03E233739363} = {52EF9B80-9E8C-59B7-2132-03E283337363}
+		{52EF9B80-9E8A-2E0A-2830-03E203235313} = {52EF9B80-9E8C-59C7-2032-03E273833303}
+		{52EF9B80-9E8B-3B81-2738-03E283836323} = {52EF9B80-9E8C-2318-2238-03E273736313}
+		{52EF9B80-9E8B-47B0-2930-03E223433373} = {52EF9B80-9E8C-231E-2134-03E213534343}
+		{52EF9B80-9E8B-5184-2838-03E263131383} = {52EF9B80-9E8C-2325-2730-03E263030313}
+	EndGlobalSection
+EndGlobal

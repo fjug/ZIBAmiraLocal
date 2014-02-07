@@ -1,0 +1,1 @@
+set cached_argv [list --preset none --mainroot {C:/Program Files/ZIBAmira 2013.55} --buildroot C:/Users/jug/ZIBAmiraLocal --rundir C:/Users/jug/ZIBAmiraLocal --archs Win64VC9 --docskin ZIBAmiraSkin --intermediatedir obj --productdir .]

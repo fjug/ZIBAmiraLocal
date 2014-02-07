@@ -1,0 +1,9 @@
+#
+#  Resource file for the itk example package from Amira's programmers guide.
+#
+
+module -name  "ComputeITKMeanFilter" \
+    -primary  "HxUniformScalarField3" \
+    -class    "MyITKFilter" \
+    -category "Local" \
+    -package  "myitkpackage"

@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="9.00"
+	Name="mypackage"
+	ProjectGUID="{52EF9B80-9E8B-47B0-2930-03E223433373}"
+	RootNamespace="mypackage"
+	>
+	<Platforms>
+		<Platform
+			Name="x64"/>
+	</Platforms>
+	<Configurations>
+		<Configuration
+			Name="Release|x64"
+			OutputDirectory="./../.././bin/arch-Win64VC9-Optimize"
+			IntermediateDirectory="./../../obj/arch-Win64VC9-Optimize/mypackage"
+			ConfigurationType="2"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="FALSE">
+			<Tool
+				Name="VCCLCompilerTool"
+				
+        AdditionalOptions="/bigobj "
+        InlineFunctionExpansion="1"
+        EnableIntrinsicFunctions="true"
+        OmitFramePointers="true"
+        StringPooling="TRUE"
+        RuntimeLibrary="2"
+        BufferSecurityCheck="false"
+        DebugInformationFormat="3"
+        EnableFunctionLevelLinking="TRUE"
+        Detect64BitPortabilityProblems="FALSE"
+        OpenMP="true"
+        Optimization="2"
+   
+				AdditionalIncludeDirectories="../../obj/arch-Win64VC9-Optimize,../../src,C:/Program Files/ZIBAmira 2013.55/include,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/oiv,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/pthread,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/ActiveQt,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/Qt3Support,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtCore,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtDBus,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtDesigner,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtGui,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtNetwork,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtOpenGL,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtScript,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtSql,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtSvg,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtTest,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtUiTools,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtXml,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtXmlPatterns,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtWebKit,C:/Program Files/ZIBAmira 2013.55/python/include,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/cuda,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Algorithms,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Common,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/BasicFilters,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/IO,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics/FEM,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics/NeuralNetworks,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics/Statistics,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/SpatialObject,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/MetaIO,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/NrrdIO,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/expat,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/itkExtHdrs,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/vxl/core,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/vxl/vcl,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/vxl/v3p/netlib,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/gdcm,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/gdcm/src"
+				PreprocessorDefinitions="NDEBUG,_WINDOWS,WIN32,WIN64,NOMINMAX,BOOST_ALL_DYN_LINK,QT_DLL,QT_THREAD_SUPPORT,STRICT,NEWSTYLE_IOSTREAM,HX_NO_MATHF,HX_HAS_ACML,HX_HAS_STD,HX_HAS_STDCOMPLEX,HX_HAS_STDIOSTREAM,HX_NO_X11,HX_OS_WIN,HX_LITTLE_ENDIAN,AMIRA64,_CRT_SECURE_NO_DEPRECATE,_SCL_SECURE_NO_WARNINGS,_HDF5USEDLL_,YY_NO_UNISTD_H,USE_NON_CONST,MYPACKAGE_EXPORTS,_SECURE_SCL=0"
+				RuntimeTypeInfo="TRUE"
+				UsePrecompiledHeader="0"
+				AssemblerListingLocation="./../../obj/arch-Win64VC9-Optimize/mypackage/"
+				ObjectFile="./../../obj/arch-Win64VC9-Optimize/mypackage/"
+				ProgramDataBaseFileName="./../.././bin/arch-Win64VC9-Optimize/mypackage.pdb"
+				SuppressStartupBanner="TRUE"
+				WarningLevel="3"
+				DisableSpecificWarnings="4068;4251;4275;4800"
+				CompileAs="0"/>
+			<Tool
+				Name="VCCustomBuildTool"/>
+			<Tool
+				Name="VCLinkerTool"
+				
+		LinkIncremental="1"
+   
+				AdditionalDependencies="ws2_32.lib msvcprt.lib oldnames.lib odbc32.lib odbccp32.lib msvcrt.lib hxplot.lib hxtime.lib hxsurface.lib hxcolor.lib hxfield.lib hxcore.lib amiramesh.lib mclib.lib InventorBase.lib InventorGL.lib Inventor.lib ScaleViz.lib InventorGui.lib InventorQt4.lib FXViz.lib MeshViz.lib VolumeViz.lib LDM.lib tcl85t.lib hxitk.lib ITKAlgorithms.lib ITKBasicFilters.lib ITKCommon.lib ITKDICOMParser.lib ITKEXPAT.lib ITKFEM.lib ITKIO.lib ITKMetaIO.lib ITKNrrdIO.lib ITKNumerics.lib ITKSpatialObject.lib ITKStatistics.lib ITKniftiio.lib ITKznz.lib itkNetlibSlatec.lib itkgdcm.lib itkjpeg12.lib itkjpeg16.lib itkjpeg8.lib itkopenjpeg.lib itkpng.lib itksys.lib itktiff.lib itkv3p_netlib.lib itkvcl.lib itkvnl.lib itkvnl_algo.lib itkvnl_inst.lib itkzlib.lib QAxContainer.lib QAxServer.lib Qt3Support4.lib QtAssistantClient4.lib QtCore4.lib QtDesigner4.lib QtDesignerComponents4.lib QtGui4.lib QtNetwork4.lib QtOpenGL4.lib QtSql4.lib QtSvg4.lib QtTest4.lib QtUiTools.lib QtXml4.lib QtXmlPatterns4.lib QtWebKit4.lib qtmain.lib"
+				OutputFile="../.././bin/arch-Win64VC9-Optimize/mypackage.dll"
+				SuppressStartupBanner="TRUE"
+				AdditionalLibraryDirectories="../.././bin/arch-Win64VC9-Optimize,C:/Program Files/ZIBAmira 2013.55/bin/arch-Win64VC9-Optimize"
+				IgnoreAllDefaultLibraries="TRUE"
+				ModuleDefinitionFile=""
+				ProgramDatabaseFile=".\../.././bin/arch-Win64VC9-Optimize/mypackage.pdb"
+				SubSystem="2"
+				EntryPointSymbol=""
+				TargetMachine="17"
+				LargeAddressAware="2"
+				AdditionalOptions=""
+				ImportLibrary=".\../.././bin/arch-Win64VC9-Optimize/mypackage.lib"/>
+			<Tool
+				Name="VCMIDLTool"
+				
+		PreprocessorDefinitions="NDEBUG"
+   
+				MkTypLibCompatible="TRUE"
+				SuppressStartupBanner="TRUE"
+				TargetEnvironment="1"
+				TypeLibraryName=".\../.././bin/arch-Win64VC9-Optimize/mypackage.tlb"/>
+			<Tool
+				Name="VCPostBuildEventTool"
+				Description="running user defined taglib"
+				CommandLine="&quot;C:\Program Files\ZIBAmira 2013.55\bin\arch-Win64VC9-Optimize\taglib&quot; -update -tagdel version_tag -tagdel version_patch -tagdel product -tagdel version_minor -tagdel version_major -tagdel vendor &quot;../.././bin/arch-Win64VC9-Optimize/mypackage.dll&quot;"/>
+			<Tool
+				Name="VCPreBuildEventTool"
+				Description="Building mypackage"
+				CommandLine=""/>
+			<Tool
+				Name="VCPreLinkEventTool"/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				
+		PreprocessorDefinitions="NDEBUG"
+   
+				Culture="1031"/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
+				Name="VCWebDeploymentTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+		</Configuration>
+		<Configuration
+			Name="Debug|x64"
+			OutputDirectory="./../.././bin/arch-Win64VC9-Debug"
+			IntermediateDirectory="./../../obj/arch-Win64VC9-Debug/mypackage"
+			ConfigurationType="2"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="FALSE">
+			<Tool
+				Name="VCCLCompilerTool"
+				
+        AdditionalOptions= "/bigobj "
+        Optimization="0"
+        BasicRuntimeChecks="2"
+        RuntimeLibrary="3"
+        DebugInformationFormat="3"
+        Detect64BitPortabilityProblems="FALSE"
+   
+				AdditionalIncludeDirectories="../../obj/arch-Win64VC9-Debug,../../src,C:/Program Files/ZIBAmira 2013.55/include,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/oiv,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/pthread,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/ActiveQt,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/Qt3Support,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtCore,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtDBus,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtDesigner,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtGui,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtNetwork,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtOpenGL,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtScript,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtSql,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtSvg,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtTest,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtUiTools,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtXml,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtXmlPatterns,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/qt/include/QtWebKit,C:/Program Files/ZIBAmira 2013.55/python/include,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/cuda,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Algorithms,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Common,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/BasicFilters,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/IO,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics/FEM,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics/NeuralNetworks,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Numerics/Statistics,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/SpatialObject,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/MetaIO,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/NrrdIO,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/expat,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/itkExtHdrs,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/vxl/core,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/vxl/vcl,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/vxl/v3p/netlib,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/gdcm,C:/Program Files/ZIBAmira 2013.55/include/arch-Win64VC9/itk/Utilities/gdcm/src"
+				PreprocessorDefinitions="_WINDOWS,WIN32,WIN64,NOMINMAX,BOOST_ALL_DYN_LINK,QT_DLL,QT_THREAD_SUPPORT,STRICT,NEWSTYLE_IOSTREAM,HX_NO_MATHF,HX_HAS_ACML,HX_HAS_STD,HX_HAS_STDCOMPLEX,HX_HAS_STDIOSTREAM,HX_NO_X11,HX_OS_WIN,HX_LITTLE_ENDIAN,AMIRA64,_CRT_SECURE_NO_DEPRECATE,_SCL_SECURE_NO_WARNINGS,_HDF5USEDLL_,YY_NO_UNISTD_H,USE_NON_CONST,MYPACKAGE_EXPORTS"
+				RuntimeTypeInfo="TRUE"
+				UsePrecompiledHeader="0"
+				AssemblerListingLocation="./../../obj/arch-Win64VC9-Debug/mypackage/"
+				ObjectFile="./../../obj/arch-Win64VC9-Debug/mypackage/"
+				ProgramDataBaseFileName="./../.././bin/arch-Win64VC9-Debug/mypackage.pdb"
+				SuppressStartupBanner="TRUE"
+				WarningLevel="3"
+				DisableSpecificWarnings="4068;4251;4275;4800"
+				CompileAs="0"/>
+			<Tool
+				Name="VCCustomBuildTool"/>
+			<Tool
+				Name="VCLinkerTool"
+				
+		LinkIncremental="2"
+		GenerateDebugInformation="TRUE"
+   
+				AdditionalDependencies="ws2_32.lib msvcprtd.lib oldnames.lib odbc32.lib odbccp32.lib msvcrtd.lib hxplot.lib hxtime.lib hxsurface.lib hxcolor.lib hxfield.lib hxcore.lib amiramesh.lib mclib.lib InventorBaseD.lib InventorGLD.lib InventorD.lib ScaleVizD.lib InventorGuiD.lib InventorQt4D.lib FXVizD.lib MeshVizD.lib VolumeVizD.lib LDMD.lib tcl85t.lib hxitk.lib ITKAlgorithms.lib ITKBasicFilters.lib ITKCommon.lib ITKDICOMParser.lib ITKEXPAT.lib ITKFEM.lib ITKIO.lib ITKMetaIO.lib ITKNrrdIO.lib ITKNumerics.lib ITKSpatialObject.lib ITKStatistics.lib ITKniftiio.lib ITKznz.lib itkNetlibSlatec.lib itkgdcm.lib itkjpeg12.lib itkjpeg16.lib itkjpeg8.lib itkopenjpeg.lib itkpng.lib itksys.lib itktiff.lib itkv3p_netlib.lib itkvcl.lib itkvnl.lib itkvnl_algo.lib itkvnl_inst.lib itkzlib.lib QAxContainerd.lib QAxServerd.lib Qt3Supportd4.lib QtAssistantClientd4.lib QtCored4.lib QtDesignerComponentsd4.lib QtDesignerd4.lib QtGuid4.lib QtNetworkd4.lib QtOpenGLd4.lib QtSqld4.lib QtSvgd4.lib QtTestd4.lib QtXmld4.lib QtXmlPatternsd4.lib QtWebKitd4.lib qtmaind.lib"
+				OutputFile="../.././bin/arch-Win64VC9-Debug/mypackage.dll"
+				SuppressStartupBanner="TRUE"
+				AdditionalLibraryDirectories="../.././bin/arch-Win64VC9-Debug,C:/Program Files/ZIBAmira 2013.55/bin/arch-Win64VC9-Debug"
+				IgnoreAllDefaultLibraries="TRUE"
+				ModuleDefinitionFile=""
+				ProgramDatabaseFile=".\../.././bin/arch-Win64VC9-Debug/mypackage.pdb"
+				SubSystem="2"
+				EntryPointSymbol=""
+				TargetMachine="17"
+				LargeAddressAware="2"
+				AdditionalOptions=""
+				ImportLibrary=".\../.././bin/arch-Win64VC9-Debug/mypackage.lib"/>
+			<Tool
+				Name="VCMIDLTool"
+				
+		PreprocessorDefinitions="_DEBUG"
+   
+				MkTypLibCompatible="TRUE"
+				SuppressStartupBanner="TRUE"
+				TargetEnvironment="1"
+				TypeLibraryName=".\../.././bin/arch-Win64VC9-Debug/mypackage.tlb"/>
+			<Tool
+				Name="VCPostBuildEventTool"
+				Description="running user defined taglib"
+				CommandLine="&quot;C:\Program Files\ZIBAmira 2013.55\bin\arch-Win64VC9-Optimize\taglib&quot; -update -tagdel version_tag -tagdel version_patch -tagdel product -tagdel version_minor -tagdel version_major -tagdel vendor &quot;../.././bin/arch-Win64VC9-Debug/mypackage.dll&quot;"/>
+			<Tool
+				Name="VCPreBuildEventTool"
+				Description="Building mypackage"
+				CommandLine=""/>
+			<Tool
+				Name="VCPreLinkEventTool"/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				
+		PreprocessorDefinitions="_DEBUG"
+   
+				Culture="1031"/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
+				Name="VCWebDeploymentTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+ <Files>
+		<Filter
+			Name="Source"
+			Filter="cu;cl;cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;h;hpp;hxx;hm;inl">
+			<File
+				RelativePath="MyAnimateColormap.cpp">
+			</File>
+			<File
+				RelativePath="MyAnimateColormap.h">
+			</File>
+			<File
+				RelativePath="MyComputeThreshold1.cpp">
+			</File>
+			<File
+				RelativePath="MyComputeThreshold1.h">
+			</File>
+			<File
+				RelativePath="MyComputeThreshold2.cpp">
+			</File>
+			<File
+				RelativePath="MyComputeThreshold2.h">
+			</File>
+			<File
+				RelativePath="MyComputeThreshold3.cpp">
+			</File>
+			<File
+				RelativePath="MyComputeThreshold3.h">
+			</File>
+			<File
+				RelativePath="MyDisplayVertices1.cpp">
+			</File>
+			<File
+				RelativePath="MyDisplayVertices1.h">
+			</File>
+			<File
+				RelativePath="MyDisplayVertices2.cpp">
+			</File>
+			<File
+				RelativePath="MyDisplayVertices2.h">
+			</File>
+			<File
+				RelativePath="MyDisplayVertices3.cpp">
+			</File>
+			<File
+				RelativePath="MyDisplayVertices3.h">
+			</File>
+			<File
+				RelativePath="MyDynamicColormap.cpp">
+			</File>
+			<File
+				RelativePath="MyDynamicColormap.h">
+			</File>
+			<File
+				RelativePath="MyPlotAreaPerSlice.cpp">
+			</File>
+			<File
+				RelativePath="MyPlotAreaPerSlice.h">
+			</File>
+			<File
+				RelativePath="MyVRDemo.cpp">
+			</File>
+			<File
+				RelativePath="MyVRDemo.h">
+			</File>
+			<File
+				RelativePath="api.h">
+			</File>
+			<File
+				RelativePath="init.cpp">
+			</File>
+			<File
+				RelativePath="readppm3d.cpp">
+			</File>
+			<File
+				RelativePath="readtrimesh.cpp">
+			</File>
+			<File
+				RelativePath="version.cpp">
+			</File>
+			<File
+				RelativePath="winversion.h">
+			</File>
+			<File
+				RelativePath="winversion.rc">
+			</File>
+			<File
+				RelativePath="writeppm3d.cpp">
+			</File>
+			<File
+				RelativePath="writetrimesh.cpp">
+			</File>
+</Filter>
+    <Filter
+			Name="Intermediate"
+			Filter="">
+</Filter>
+    <Filter
+			Name="Share/Data"
+			Filter="">
+			<File
+				RelativePath="share\resources\mypackage.rc">
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="copying share\resources\mypackage.rc"
+						Outputs="..\..\.\share\resources\mypackage.rc"
+						CommandLine="rem IncrediBuild_RunFirst&#x0D;&#x0A;type &quot;share\resources\mypackage.rc&quot; >&quot;..\..\.\share\resources\mypackage.rc-tmp&quot;&#x0D;&#x0A;move /y &quot;..\..\.\share\resources\mypackage.rc-tmp&quot; &quot;..\..\.\share\resources\mypackage.rc&quot; >NUL"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="copying share\resources\mypackage.rc"
+						Outputs="..\..\.\share\resources\mypackage.rc"
+						CommandLine="rem IncrediBuild_RunFirst&#x0D;&#x0A;type &quot;share\resources\mypackage.rc&quot; >&quot;..\..\.\share\resources\mypackage.rc-tmp&quot;&#x0D;&#x0A;move /y &quot;..\..\.\share\resources\mypackage.rc-tmp&quot; &quot;..\..\.\share\resources\mypackage.rc&quot; >NUL"
+					/>
+				</FileConfiguration>
+			</File>
+</Filter>
+    <Filter
+			Name="Copy"
+			Filter="">
+</Filter>
+		<Filter
+			Name="Custom"
+			Filter="">
+		</Filter>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

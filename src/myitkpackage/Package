@@ -1,0 +1,10 @@
+set PACKAGE {myitkpackage}
+
+set LIBS {
+    hxplot hxtime hxsurface hxcolor hxfield
+    hxcore amiramesh mclib oiv tcl hxitk itk qt
+}
+
+set SHARE {
+    share/resources/myitkpackage.rc
+}

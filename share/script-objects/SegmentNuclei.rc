@@ -1,0 +1,12 @@
+#############################################################
+# .rc for scro SegmentNuclei
+#############################################################
+
+module -name "SegmentNuclei" \
+    -package "hxworm" \
+    -category "Worm" \
+    -proc {
+	set mod [[create HxScriptObject] setLabel SegmentNuclei]
+	$mod script setValue $AMIRA_ROOT/share/script-objects/SegmentNuclei.scro
+	$mod fire
+    }

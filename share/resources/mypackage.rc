@@ -1,0 +1,93 @@
+#
+#  Resource file for the example package from Amira's programmers guide.
+#
+
+#  Declare a reader for the file format PPM3D. Files in that format are
+#  recognized by a header containing the string PPM3D. The function
+#  readppm3d() defined in package mypackage is used to read the data.
+
+dataFile -name "PPM3D Demo Format"      \
+    -header "PPM3D"                     \
+    -load "readppm3d"	                \
+    -package "mypackage"
+
+#  Declare a writer for the file format PPM3D. Data objects of type
+#  HxUniformScalarField3 can be saved in this format. The actual writer is
+#  implemented by the routine writeppm3d() defined in package mypackage.
+
+dataFile -name "PPM3D Demo Format"	\
+    -save "writeppm3d"                  \
+    -type "HxUniformScalarField3"       \
+    -package "mypackage"
+
+dataFile -name "Trimesh Demo Format"	\
+    -ext "trimesh,tm"                   \
+    -load "readtrimesh"                 \
+    -package "mypackage"
+
+dataFile -name "Trimesh Demo Format"	\
+    -ext "trimesh"                      \
+    -type "HxSurface"                   \
+    -type "HxSurfaceField"              \
+    -save "writetrimesh"                \
+    -package "mypackage"
+
+module -name "ComputeThreshold1"        \
+    -primary "HxUniformScalarField3"    \
+    -class "MyComputeThreshold1"        \
+    -category "Local"                   \
+    -package "mypackage"
+
+module -name "ComputeThreshold2"        \
+    -primary "HxUniformScalarField3"    \
+    -class "MyComputeThreshold2"        \
+    -category "Local"                   \
+    -package "mypackage"
+
+module -name "ComputeThreshold3"        \
+    -primary "HxUniformScalarField3"    \
+    -class "MyComputeThreshold3"        \
+    -category "Local"                   \
+    -package "mypackage"
+
+module -name "DisplayVertices1"         \
+    -primary "HxSurface"                \
+    -class "MyDisplayVertices1"         \
+    -category "Local"                   \
+    -package "mypackage"
+
+module -name "DisplayVertices2"         \
+    -primary "HxSurface"                \
+    -class "MyDisplayVertices2"         \
+    -category "Local"                   \
+    -package "mypackage"
+
+module -name "DisplayVertices3"         \
+    -primary "HxSurface"                \
+    -class "MyDisplayVertices3"         \
+    -category "Local"                   \
+    -package "mypackage"
+
+module -name "PlotAreaPerSlice"         \
+    -primary "HxLabelLattice3"          \
+    -class "MyPlotAreaPerSlice"         \
+    -category "Local"                   \
+    -package "mypackage"
+
+module -name "DoAnimate"                \
+    -primary "HxColormap256"            \
+    -class "MyAnimateColormap"          \
+    -category "Main"                    \
+    -package "mypackage"
+
+dataClass -name "DynamicColormap"       \
+    -class "MyDynamicColormap"          \
+    -category "Data"                    \
+    -package "mypackage"
+
+module -name "VRDemo"                   \
+    -primary "HxTracking"               \
+    -class "MyVRDemo"                   \
+    -category "Main"                    \
+    -package "mypackage"
+

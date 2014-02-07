@@ -1,0 +1,13 @@
+set PACKAGE {hxworm}
+
+set LABELS {experimental}
+
+set LIBS {hxarith hximproc hxfield hxsurface hxconvexhull hxlandmark hxsurftools hxsurfacepath hxsurfacepathedit hxsurfacepathtools hxcluster hxlines hxcolor
+hxskeletonold hxskeleton hxneurontree hxlatticex hxlatticexbase hxdistmap hxiso hxsurfedit hxsegeditor hxremesh hxvectools hxsurfremesh hxsurffeatures hxlinetools2
+    hxtime hxivdata hxcore hxtransforms hxivshapes amiramesh anna mclib qt tcl oiv opengl hxactivesurf hxactiveseg hxght empackage hxlattice hxtetra graphmatching openmp hxactiveshape}
+
+set SHARE { 
+    share/resources/hxworm.rc 
+	share/script-objects/*.rc
+	share/script-objects/*.scro	
+}

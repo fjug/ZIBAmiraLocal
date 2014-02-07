@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="9.00"
+	Name="docZIBAmiraLocal"
+	ProjectGUID="{52EF9B80-9E8C-5884-2231-03E253231313}"
+	RootNamespace="docZIBAmiraLocal"
+	TargetFrameworkVersion="0"
+	>
+	<Platforms>
+		<Platform
+			Name="x64"
+		/>
+	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
+	<Configurations>
+		<Configuration
+			Name="Release|x64"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="./obj/arch-Win64VC9-Optimize/docZIBAmiraLocal"
+			ConfigurationType="10"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+				Description="Creating complete documentation."
+				CommandLine="mkdir &quot;C:\Users\jug\ZIBAmiraLocal\.\share\doc\zibamira&quot;&#x0D;&#x0A;&quot;C:\Program Files\ZIBAmira 2013.55\bin\arch-Win64VC9-Optimize\doc2html.exe&quot; -a -local . -skin ZIBAmiraSkin -d &quot;./share/doc/zibamira&quot; -p &quot;C:/Users/jug/ZIBAmiraLocal/setupcache/packagedirs&quot;&#x0D;&#x0A;"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug|x64"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="./obj/arch-Win64VC9-Debug/docZIBAmiraLocal"
+			ConfigurationType="10"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+				Description="Creating complete documentation."
+				CommandLine="mkdir &quot;C:\Users\jug\ZIBAmiraLocal\.\share\doc\zibamira&quot;&#x0D;&#x0A;&quot;C:\Program Files\ZIBAmira 2013.55\bin\arch-Win64VC9-Optimize\doc2html.exe&quot; -a -local . -skin ZIBAmiraSkin -d &quot;./share/doc/zibamira&quot; -p &quot;C:/Users/jug/ZIBAmiraLocal/setupcache/packagedirs&quot;&#x0D;&#x0A;"
+			/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

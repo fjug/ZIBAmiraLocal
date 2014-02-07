@@ -1,0 +1,7 @@
+set PACKAGE {graphmatching}
+
+set LABELS {experimental}
+
+set LIBS {hxcore mclib openmp}
+
+set SHARE {}

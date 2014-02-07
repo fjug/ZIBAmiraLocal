@@ -1,0 +1,45 @@
+# ----------------------------------------------------------------------
+# hxworm package
+# ----------------------------------------------------------------------
+
+module -name "WormAtlasReg" \
+    -primary "HxSurface" \
+    -class "HxWormAtlasReg" \
+    -category "Worm" \
+    -package "hxworm"
+
+module -name "AlignWorms" \
+    -primary "HxSurface" \
+    -class "HxAlignWorms" \
+    -category "Worm" \
+    -package "hxworm"
+
+module -name "StandardizeWorm" \
+    -primary "HxSurface" \
+    -class "HxStandardizeWorm" \
+    -category "Worm" \
+    -package "hxworm"
+
+module -name "SelectEllipses" \
+    -primary "HxSurface" \
+    -class "HxSelectEllipses" \
+    -category "Worm" \
+    -package "hxworm"
+
+module -name "SegmentNuclei" \
+    -primary "HxUniformScalarField3" \
+    -class "HxSegmentNuclei" \
+    -category "Worm" \
+    -package "hxworm"
+
+module -name "NucleiHypotheses" \
+    -primary "HxUniformScalarField3" \
+    -class "HxNucleiHypotheses" \
+    -category "Worm" \
+    -package "hxworm"
+
+module -name "EditNuclei" \
+    -primary "HxSurface" \
+    -class "HxEditNuclei" \
+    -category "Worm" \
+    -package "hxworm"

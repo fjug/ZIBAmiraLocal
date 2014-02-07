@@ -1,0 +1,2018 @@
+# Amira-Script-Object V3.0
+
+#########################################################################
+#
+# segment nuclei in nuclear envelope / dapi images
+#
+# author: Dagmar Kainmueller, kainmueller@mpi-cbg.de
+#
+#########################################################################
+
+# constructor is called when scro is instantiated
+$this proc constructor {} {
+
+    # input
+	# data: image
+    # $this newPortConnection image HxUniformScalarField3
+    $this newPortConnection channel2image HxUniformScalarField3
+    $this newPortConnection gradientImage HxUniformVectorField3
+    $this newPortConnection maskImage HxUniformLabelField3
+
+    $this newPortConnection template HxSurface
+	
+    # action
+    $this newPortButtonList action 1
+    $this action setLabel "Action:"
+    $this action setLabel 0 "Start"
+    $this action setCmd 0 {
+	if [catch {$this doInit} msg] {echo $msg}
+    }
+
+    # profLength 
+    $this newPortFloatTextN profs 2
+    $this profs setLabel 0 "profLength:"
+    $this profs setValue 0 6
+    # numSamples
+    $this profs setLabel 1 "numSamples:"
+    $this profs setValue 1 21
+	
+    # intensity window 
+    $this newPortFloatTextN params 3
+    $this params setLabel 0 "thresh:"
+    $this params setValue 0 750
+    $this params setLabel 1 "tol:"
+    $this params setValue 1 250
+    # gradient threshold
+    $this params setLabel 2 "minGradPerMm:"
+    $this params setValue 2 50
+	
+    $this newPortFloatTextN nGhtSteps 1
+    $this nGhtSteps setLabel 0 "nGhtSteps:"
+    $this nGhtSteps setValue 0 10
+	
+    $this newPortFloatTextN scaleRange 2
+    $this scaleRange setValue 0 0.4
+    $this scaleRange setValue 1 1.3
+	
+
+    $this newPortFloatTextN nSpheres 1
+    $this nSpheres setLabel 0 "nSpheres:"
+    $this nSpheres setValue 0 750
+
+    $this newPortFloatTextN maxNumTrafos 1
+    $this maxNumTrafos setLabel 0 "maxNumTrafos:"
+    $this maxNumTrafos setValue 0 250000
+
+	$this setVar numCores 23
+
+	$this setVar maxOrigCost 0
+	$this setVar totalCost -1
+	$this setVar centerList {}
+	$this setVar costPerPatch {}
+	$this setVar sortedPatchList {}
+	$this setVar sortedIndexPerPatch {} 
+	$this setVar checkIdx -1
+	
+	$this setVar lastAccuVal -1
+	
+	$this setVar resultPath "C:/amira/product/data/"	
+	$this setVar identifier [ clock seconds ]
+
+
+}
+
+# compute is called whenever the ports of the scro change
+$this proc compute {} {
+  
+	set image [ $this data source ]
+	set voxelSize [ $image getVoxelSize ]
+	set xSize [ lindex $voxelSize 0 ]
+	set ySize [ lindex $voxelSize 1 ]
+	set zSize [ lindex $voxelSize 2 ]
+	set ivs {}
+	lappend ivs [ expr { 1. / $xSize } ]
+	lappend ivs [ expr { 1. / $ySize } ]
+	lappend ivs [ expr { 1. / $zSize } ]
+	$this setVar invVoxelSize $ivs
+	
+	set bbox [ $image getBoundingBox ]
+	set off {}
+	lappend off [ lindex $bbox 0 ]
+	lappend off [ lindex $bbox 2 ]
+	lappend off [ lindex $bbox 4 ]
+	$this setVar offset $off
+	
+}
+
+$this proc xproc {pname arglist body} {
+    set preamble ""
+    foreach arg $arglist {
+        set arg [lindex $arg 0]
+        if {[string match "&*" $arg]} {
+            set barearg [string range $arg 1 end]
+            append preamble "upvar 1 \[set [list $arg]\] [list $barearg]\n"
+        }
+    }
+    $this proc $pname $arglist "$preamble#original body follows:\n$body"
+}
+
+$this proc extractPatches {fromPatchIdx toPatchIdx surface} {
+	set surfView [create HxDisplaySurface]
+	$surfView data connect $surface
+	$surfView fire
+	$surfView selectionMode setValueString Patch
+	$surfView fire
+	$surfView Patch setValue 1
+	$surfView fire
+	$surfView Patch setValue 0
+	$surfView fire
+	$surfView buffer hit 1
+	$surfView fire
+	for { set p $fromPatchIdx } { $p <= $toPatchIdx } { incr p } { 
+		$surfView Patch setValue [ expr { $p + 1 } ]
+		$surfView fire
+		$surfView buffer hit 0
+		$surfView fire
+	}
+	set extractedSurf [ $surfView createSurface ]
+
+	remove $surfView 
+	
+	return $extractedSurf
+}
+
+$this proc extractListOfPatches {listOfPatches surface} {
+	set numPatches [ llength $listOfPatches ]
+	set surfView [create HxDisplaySurface]
+	$surfView data connect $surface
+	$surfView fire
+	$surfView selectionMode setValueString Patch
+	$surfView fire
+	$surfView Patch setValue 1
+	$surfView fire
+	$surfView Patch setValue 0
+	$surfView fire
+	$surfView buffer hit 1
+	$surfView fire
+	for { set i 0 } { $i < $numPatches } { incr i } { 
+		set pair [ lindex $listOfPatches $i ]
+		set p [ lindex $pair 0 ]
+		$surfView Patch setValue [ expr { $p + 1 } ]
+		$surfView fire
+		$surfView buffer hit 0
+		$surfView fire
+	}
+	set extractedSurf [ $surfView createSurface ]
+
+	remove $surfView 
+	
+	return $extractedSurf
+}
+
+proc removeCurrentPatch { surface } { 
+	global sortedPatchList
+	global checkIdx
+	set patchIdx [ lindex $sortedPatchList $checkIdx]
+
+	removePatch $surface $patchIdx
+}
+
+proc removePatch { surface patchIdx } { 
+	# remove patch $index (SelectedSpheres and SelectedSpheresAdapted)
+	set surfView [create HxDisplaySurface]
+	$surfView data connect $surface
+	$surfView fire
+	$surfView selectionMode setValueString Patch
+	$surfView fire
+	$surfView Patch setValue 0
+	$surfView fire
+	$surfView buffer hit 0
+	$surfView fire
+	$surfView Patch setValue [ expr { $patchIdx + 1 } ]
+	$surfView fire
+	$surfView buffer hit 1
+	$surfView fire
+	set result [ $surfView createSurface ]
+	remove $surfView
+
+	# replace downStreamConnections of $surface
+	set connections [ $surface downStreamConnections ]
+	set numConnections [ llength $connections ]
+	for { set i 0 } { $i < $numConnections } { incr i } {
+		set cmd [ lindex $connections $i ]
+		eval $cmd connect $result
+	}
+	remove $surface
+	rename $result $surface
+	
+	# correct materials
+	set numPatchesNew [ $surface getNumPatches ]
+	for { set patch $patchIdx } { $patch < $numPatchesNew } { incr patch } {
+		set matIdx [ expr { $patch + 1 } ]
+		$surface assignInsideMaterial $patch $matIdx 
+	}
+}
+
+proc insertOnePatch { surface patchIdx patchSurface } {
+	set before 0
+	set after 0
+	set numPatches [ $surface getNumPatches ]
+	set maxPatchIdx [ expr { $numPatches - 1 } ] 
+
+	# create dummy material list: 
+	set mat Material
+	$patchSurface setMaterialName 1 $mat$numPatches
+	$patchSurface assignInsideMaterial 0 1
+	set dummySurf [ $surface duplicate ] 
+	$dummySurf merge $patchSurface
+
+	if { $patchIdx > 0 } {
+		set beforePatchIdx [ expr { $patchIdx - 1 } ]
+		set before [ $this extractPatches 0 $beforePatchIdx $surface ]
+	}
+	if { $patchIdx < $numPatches } { 
+		set after [ $this extractPatches $patchIdx $maxPatchIdx $surface ]
+	}
+	if { $before != 0 } {
+		$before merge $patchSurface
+	} else { 
+		set before $patchSurface
+	}
+	if { $after != 0 } {
+		$before merge $after 
+		remove $after
+
+		# correct materials
+		$before copyMaterials $dummySurf
+	}
+	
+	remove $dummySurf		
+	# rename, downstream connections, ...
+	set connections [ $surface downStreamConnections ]
+	set numConnections [ llength $connections ]
+	for { set i 0 } { $i < $numConnections } { incr i } {
+		set cmd [ lindex $connections $i ]
+		eval $cmd connect $before
+	}
+	remove $surface
+	rename $before $surface
+}
+
+proc insertPatches { surface patchIdx patchSurface } {
+	set numPatchesToInsert [ $patchSurface getNumPatches ]
+	# for each patch, counting back
+	for { set p $numPatchesToInsert } { $p>0 } { incr p -1 } {
+		# extract patch
+		set idx [ expr { $p - 1 } ]
+		set patch [ $this extractPatches $idx $idx $patchSurface ]
+		# insert
+		insertOnePatch $surface $patchIdx $patch
+		remove $patch
+	}
+}
+
+proc replacePatch { surface patchIdx patchSurface } { 
+	removePatch $surface $patchIdx
+	insertPatches $surface $patchIdx $patchSurface 
+}
+
+proc sortEllipses {} {
+	global sortedPatchList
+	global sortedIndexPerPatch
+	global costPerPatch
+	set sortedPatchList [ lsort -real -indices $costPerPatch ]	
+	set sortedIndexPerPatch [ lsort -real -indices $sortedPatchList ]
+}
+
+proc updateSortedIndexPerPatch {} { 
+	global sortedPatchList
+	global sortedIndexPerPatch
+	set sortedIndexPerPatch [ lsort -real -indices $sortedPatchList ]
+}
+
+proc patchAt { sortedIdx } {
+	global sortedPatchList
+	return [ lindex $sortedPatchList $sortedIdx ] 
+}
+
+proc sortedIdxOf { patch } {
+	global sortedIndexPerPatch
+	return [ lindex $sortedIndexPerPatch $patch ] 
+}
+
+proc next {} {
+	global checkIdx
+	incr checkIdx
+	checkEllipse $checkIdx
+}
+
+proc ortho {} {
+	global checkIdx
+	checkEllipseXZ $checkIdx
+}
+
+proc prev {} {
+	global checkIdx
+	incr checkIdx -1
+	checkEllipse $checkIdx
+}
+
+proc checkEllipse {number} {
+	global sortedPatchList
+	global centerList
+	global costPerPatch
+	global checkIdx
+	set index [ lindex $sortedPatchList $number]
+	set centerOfEllipse [lindex $centerList $index]
+	set centerX [lindex $centerOfEllipse 0]
+	set centerY [lindex $centerOfEllipse 1]
+	set centerZ [lindex $centerOfEllipse 2]
+	OrthoSlice sliceOrientation setValue 0
+	OrthoSlice fire
+	viewer 0 setCameraPosition $centerX $centerY [ expr { $centerZ - 150 } ]
+	OrthoSlice sliceNumber setValue $centerZ
+	OrthoSlice fire
+	Intersect selection hit 1
+	Intersect fire
+	Intersect selection setOptValue 0 [ expr { $index + 2 } ]
+	Intersect fire
+	set cost [lindex $costPerPatch $index]
+	echo number $number (index $index): cost $cost
+	set checkIdx $number
+}
+
+proc checkEllipseXZ {number} {
+	global sortedPatchList
+	global centerList
+	global costPerPatch
+	global checkIdx
+	set index [ lindex $sortedPatchList $number]
+	set centerOfEllipse [lindex $centerList $index]
+	set centerX [lindex $centerOfEllipse 0]
+	set centerY [lindex $centerOfEllipse 1]
+	set centerZ [lindex $centerOfEllipse 2]
+	OrthoSlice sliceOrientation setValue 1
+	OrthoSlice fire
+	viewer 0 setCameraPosition $centerX [ expr { $centerY - 150 } ] $centerZ 
+	OrthoSlice sliceNumber setValue $centerY
+	OrthoSlice fire
+	Intersect selection hit 1
+	Intersect fire
+	Intersect selection setOptValue 0 [ expr { $index + 2 } ]
+	Intersect fire
+	set cost [lindex $costPerPatch $index]
+	echo number $number (index $index): cost $cost
+	set checkIdx $number
+}
+
+proc splitEllipse { howmany } {
+	global sortedPatchList
+	global centerList
+	global costPerPatch
+	global checkIdx
+	set image [ $this data source ]
+	set gradientImage [ $this gradientImage source ]
+	set maskImage [ $this maskImage source ]
+	set template [ $this template source ]
+	set numCores [ $this getVar numCores ]
+	global maxOrigCost
+	global totalCost
+	
+	set profLengthFromInside 12
+	set numSamplesFromInside 41
+	
+	set patch [ patchAt $checkIdx]
+	
+	set numPatchesOld [ SelectedSpheresAdapted getNumPatches ]
+
+	# extract ellipse $checkIdx
+	set result [ $this extractPatches $patch $patch SelectedSpheresAdapted ]
+	$result assignInsideMaterial 0 1	
+
+# scan convert ellipse 
+	set scanConv [create HxScanConvertSurface]
+	$scanConv field connect $image
+	$scanConv data connect $result
+	$scanConv fire 
+	$scanConv action hit
+	$scanConv fire
+	set mask [$scanConv getResult]
+	$mask master disconnect
+	remove $scanConv
+# create mask			
+	set combineMask [create HxArithmetic]
+	$combineMask inputA connect $maskImage
+	$combineMask fire
+	$combineMask inputB connect $mask
+	$combineMask fire
+	$combineMask expr setValue "A&&B"
+	$combineMask doIt hit
+	$combineMask fire
+	set smallMaskDummy [ $combineMask getResult ]
+	$smallMaskDummy master disconnect
+	$combineMask inputA disconnect 
+	$combineMask inputB disconnect 
+	set cast [create HxCastField]
+	$cast data connect $smallMaskDummy
+	$cast fire
+	$cast outputType setValueString LabelField
+	$cast fire
+	$cast action hit
+	$cast fire
+	set smallMask [$cast getResult]
+	$smallMask master disconnect
+	$cast data disconnect 
+	remove $cast
+	
+# get bbox
+	set bbox [ $result getBoundingBox ]
+	set imin [ lindex $bbox 0 ]
+	set imax [ expr { [ lindex $bbox 1 ] + 1 } ]
+	set jmin [ lindex $bbox 2 ]
+	set jmax [ expr { [ lindex $bbox 3 ] + 1 } ]
+	set kmin [ lindex $bbox 4 ]
+	set kmax [ expr { [ lindex $bbox 5 ] + 1 } ]
+	
+	set imin [ expr { $imin - $oX } ]
+	set imin [ expr { $imin*$factorX }]
+	set imax [ expr { $imax - $oX } ]
+	set imax [ expr { $imax*$factorX }]
+
+	set jmin [ expr { $jmin - $oY } ]
+	set jmin [ expr { $jmin*$factorY }]
+	set jmax [ expr { $jmax - $oY } ]
+	set jmax [ expr { $jmax*$factorY }]
+
+	set kmin [ expr { $kmin - $oZ } ]
+	set kmin [ expr { $kmin*$factorZ }]
+	set kmax [ expr { $kmax - $oZ } ]
+	set kmax [ expr { $kmax*$factorZ }]
+
+# crop mask 
+	$smallMask crop $imin $imax $jmin $jmax $kmin $kmax 
+# duplicate gradient and crop to bbox
+	set smallGradientImage [ $gradientImage duplicate ]
+	$smallGradientImage crop $imin $imax $jmin $jmax $kmin $kmax 
+	
+	$smallMask touch
+	$smallMask fire
+	$smallGradientImage touch
+	$smallGradientImage fire
+	
+# GHT
+	$template setTransform 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+	$template fire
+	set smallGHT [ create HxGeneralizedHoughTransform ] 
+	$smallGHT TemplateShape connect $template 
+	$smallGHT ImageGradients connect $smallGradientImage 
+	$smallGHT Mask connect $smallMask 
+	$smallGHT {RTableBins} setValue 6
+	$smallGHT {Scale} setState item 0 1 item 2 0.2 item 4 1.0 item 6 9 
+	$smallGHT {YScale} setState item 0 1 item 2 0.2 item 4 1.0 item 6 9 
+	$smallGHT {ZScale} setState item 0 1 item 2 0.2 item 4 1.0 item 6 9 
+	$smallGHT {XRotation} setState item 0 1 item 2 90 item 4 10 
+	$smallGHT {YRotation} setState item 0 1 item 2 90 item 4 10 
+	$smallGHT {InvertNormals} setValue 0 0
+	$smallGHT {Options} setValue 0 1
+	$smallGHT {Options} setValue 1 0
+	$smallGHT {Options} setValue 2 1
+	$smallGHT {Threads} setMinMax 1 24
+	$smallGHT {Threads} setValue $numCores
+	$smallGHT fire 
+	
+	$smallGHT action hit 
+	$smallGHT fire
+	set accuDummy [ $smallGHT getResult ]
+	$accuDummy master disconnect
+	
+# select/adapt/insert howmany ellipses, costs and centers
+	set smallCenterList {}
+	set smallCostList {}
+	set firstIdx [llength $sortedPatchList]
+	selectEllipses $smallGHT $template $howmany $image SplitSpheres smallCenterList smallCostList $firstIdx 0 0 0 0
+	set adaptedSplitSpheres [ $this adaptFromInside SplitSpheres $image 0 $profLengthFromInside $numSamplesFromInside ]
+
+	remove SplitSpheresAdapted
+	rename $adaptedSplitSpheres SplitSpheresAdapted
+	set adaptedSplitSpheres SplitSpheresAdapted
+
+	# replace ellipse $checkIdx (re-number materials), replace cost and center in lists
+	replacePatch SelectedSpheres $patch SplitSpheres
+	replacePatch SelectedSpheresAdapted $patch SplitSpheresAdapted
+	
+	# remove old center and cost
+	set costPerPatch [ lreplace $costPerPatch $patch $patch ]
+	set centerList [ lreplace $centerList $patch $patch ]
+#	set sortedPatchList [ lreplace $sortedPatchList $checkIdx $checkIdx ]
+
+	# insert new centers and costs
+	set num [llength $smallCostList ]
+	set cost [ expr { $totalCost / $num } ]
+	for { set i $num } { $i > 0  } {incr i -1 } {
+		set costPerPatch [ linsert $costPerPatch $patch $cost ]
+		set idx [ expr { $i - 1 } ]
+		set center [ lindex $smallCenterList $idx ]
+		set centerList [ linsert $centerList $patch $center ]
+	}
+	
+	for { set i 0 } { $i < $numPatchesOld } { incr i } {
+		set sortedPatch [ lindex $sortedPatchList $i ]
+		set toAdd [ expr { $num - 1 } ] 
+		if { $sortedPatch > $patch } { 
+			set newPatch [ expr { $sortedPatch + $toAdd } ]
+			set sortedPatchList [ lreplace $sortedPatchList $i $i $newPatch ]
+		}
+	}	
+	
+	for { set p [ expr { $num - 1 } ] } { $p > 0 } {incr p -1} {
+		set newPatchIdx [ expr { $patch + $p } ]
+		set cIdx [ expr { $checkIdx + 1 } ]
+		echo "linsert sortedPatchList $cIdx $newPatchIdx"
+		set sortedPatchList [ linsert $sortedPatchList $cIdx $newPatchIdx ]
+	}
+	updateSortedIndexPerPatch
+	
+	remove SplitSpheres
+	remove SplitSpheresAdapted
+	remove $smallGHT
+	remove $smallGradientImage
+	remove $smallMask
+	remove $smallMaskDummy
+	remove $result
+	remove $mask
+	remove $combineMask
+	remove $accuDummy
+	
+	checkEllipse $checkIdx
+	
+}
+
+proc enlargeEllipse {} {
+# extract
+	global sortedPatchList
+	global centerList
+	global costPerPatch
+	global checkIdx
+	set image [ $this data source ]
+	global totalCost
+	
+	set profLengthEnlarge 12
+	set numSamplesEnlarge 41
+	
+	set patch [ lindex $sortedPatchList $checkIdx]
+	
+	set numPatches [ SelectedSpheresAdapted getNumPatches ]
+
+	# extract ellipse $checkIdx
+	set result [ $this extractPatches $patch $patch SelectedSpheresAdapted ]
+	
+	# scan convert surface to create mask?
+
+	# adapt
+	set enlargedEllipse [ $this adaptFromOutside $result $image 0 $profLengthEnlarge $numSamplesEnlarge ]
+#	 replace ellipse, center and totalCost
+	replacePatch SelectedSpheresAdapted $patch $enlargedEllipse
+	
+	# replace center and cost
+	set costPerPatch [ lreplace $costPerPatch $patch $patch $totalCost ]
+	set center [ $enlargedEllipse getCenter ]
+	set centerList [ lreplace $centerList $patch $patch $center ]
+	
+	remove $result
+	remove $enlargedEllipse
+}
+
+proc shrinkEllipse {} {
+	splitEllipse 1	
+}
+
+proc mergeEllipse { whichIndex } {
+	global sortedPatchList
+	global centerList
+	global costPerPatch
+	global checkIdx
+	set image [ $this data source ]
+	global totalCost
+	global maxOrigCost
+	
+	set profLengthEnlarge 8
+	set numSamplesEnlarge 31
+	
+	set index [ lindex $sortedPatchList $checkIdx]
+	
+	# extract index and whichIndex
+	set surfView [create HxDisplaySurface]
+	$surfView data connect SelectedSpheresAdapted
+	$surfView fire
+	$surfView selectionMode setValueString Patch
+	$surfView fire
+	$surfView Patch setValue 1
+	$surfView fire
+	$surfView Patch setValue 0
+	$surfView fire
+	$surfView buffer hit 1
+	$surfView fire
+	$surfView Patch setValue [ expr { $index + 1 } ]
+	$surfView fire
+	$surfView buffer hit 0
+	$surfView fire
+	$surfView Patch setValue [ expr { $whichIndex + 1 } ]
+	$surfView fire
+	$surfView buffer hit 0
+	$surfView fire
+	set toMerge [ $surfView createSurface ]
+	remove $surfView
+	
+	set numPoints [ $toMerge getNumPoints ]
+	set numPoints [ expr { $numPoints / 2 } ] 
+	# convex hull
+	set hull [ create HxConvexHull ]
+	$hull data connect $toMerge 
+	$hull fire
+	$hull MaxHullPoints setValue $numPoints 
+	$hull action hit 
+	$hull fire
+	set toMergeHull [ $hull getResult ]
+	$toMergeHull master disconnect
+	remove $hull
+	
+	# remesh to template number of vertices
+	set remesher [ create HxRemeshSurface ]
+	$remesher data connect $toMergeHull 
+	$remesher fire
+	$remesher desiredSize setValue $numPoints
+	$remesher fire
+	$remesher remesh hit
+	$remesher fire
+	set remeshedToMergeHull [ $remesher getResult ]
+	$remeshedToMergeHull master disconnect
+	remove $remesher 
+	
+	#adapt
+	set mergedEllipse [ $this adaptFromOutside $remeshedToMergeHull $image 0 $profLengthEnlarge $numSamplesEnlarge ]
+
+	# replace $index, remove $whichIndex
+	
+	# replace current with merged 
+	replacePatch SelectedSpheres $index $remeshedToMergeHull
+	replacePatch SelectedSpheresAdapted $index $mergedEllipse
+	
+	set centerAdapted [ $mergedEllipse getCenter ]
+	set centerList [ lreplace $centerList $index $index $centerAdapted ]
+
+	echo "cost of merged ellipse: $totalCost"
+	set costPerPatch [ lreplace $costPerPatch $index $index $totalCost ]
+	
+	# remove merged-in
+	removePatch SelectedSpheres $whichIndex
+	removePatch SelectedSpheresAdapted $whichIndex
+	
+	set costPerPatch [ lreplace $costPerPatch $whichIndex $whichIndex ]
+	set centerList [ lreplace $centerList $whichIndex $whichIndex ]
+	
+	set sortedIdxOfMergedPatch [ sortedIdxOf $whichIndex ]
+	set sortedPatchList [ lreplace $sortedPatchList $sortedIdxOfMergedPatch $sortedIdxOfMergedPatch ]
+	updateSortedIndexPerPatch
+
+	if { $sortedIdxOfMergedPatch < $checkIdx } {
+		incr checkIdx -1
+	}
+	checkEllipse $checkIdx
+	
+	remove $toMerge
+	remove $toMergeHull
+	remove $remeshedToMergeHull
+	remove $mergedEllipse
+}
+
+proc mergeNSplitEllipse { whichIndex howmany } {
+	mergeEllipse $whichIndex
+	splitEllipse $howmany
+}
+
+proc removeEllipse {} {
+	global sortedPatchList
+	global centerList
+	global costPerPatch
+	global checkIdx
+	
+	set index [ lindex $sortedPatchList $checkIdx]
+
+	removePatch SelectedSpheres $index
+	removePatch SelectedSpheresAdapted $index
+	
+	set costPerPatch [ lreplace $costPerPatch $index $index ]
+	set centerList [ lreplace $centerList $index $index ]
+	
+	set sortedPatchList [ lreplace $sortedPatchList $checkIdx $checkIdx ]
+	updateSortedIndexPerPatch
+
+	incr checkIdx -1
+	
+}
+
+$this proc doInit {} {
+#	set costPerPatch [ $this getVar costPerPatch ]
+#	set centerList [ $this getVar centerList ]
+	set profLength [ $this profs getValue 0 ]
+	set numSamples [ $this profs getValue 1 ]
+	set image [ $this data source ]
+	set channel2image [ $this channel2image source ]
+	if { $channel2image == "" } { set channel2image $image }
+	set template [ $this template source ]
+	set gradientImage [ $this gradientImage source ]
+	set maskImage [ $this maskImage source ]
+	set numCores [ $this getVar numCores ]
+	set nGhtSteps [ $this nGhtSteps getValue 0 ]
+	set nSpheres [ $this nSpheres getValue 0 ]
+	set maxNumTrafos [ $this maxNumTrafos getValue 0 ]
+	set resultPath [ $this getVar resultPath ]
+	set scale0 [ $this scaleRange getValue 0 ]
+	set scale1 [ $this scaleRange getValue 1 ]
+	
+	set identifier [ $this getVar identifier ]
+	set trafoName SegmentNucleiAllTrafos
+	set accuName SegmentNucleiAccu
+	set wsName SegmentNucleiWs
+
+	set degrees [ expr { 90 - 90/$nGhtSteps } ]
+	set ght [ create HxGeneralizedHoughTransform ]
+	$ght {TemplateShape} connect $template
+	$ght {ImageGradients} connect $gradientImage
+	$ght {Mask} connect $maskImage
+	$ght fire
+	$ght {RTableBins} setMinMax 4 32
+	$ght {RTableBins} setButtons 1
+	$ght {RTableBins} setIncrement 1
+	$ght {RTableBins} setValue 6
+	$ght {RTableBins} setSubMinMax 4 32
+	$ght {Scale} setState item 0 1 item 2 $scale0 item 4 $scale1 item 6 $nGhtSteps 
+	$ght {YScale} setState item 0 1 item 2 $scale0 item 4 $scale1 item 6 $nGhtSteps  
+	$ght {ZScale} setState item 0 1 item 2 $scale0 item 4 $scale1 item 6 $nGhtSteps  
+	$ght {XRotation} setState item 0 1 item 2 $degrees item 4 $nGhtSteps   
+	$ght {YRotation} setState item 0 1 item 2 $degrees item 4 $nGhtSteps   
+	$ght {ZRotation} setState item 0 1 item 2 $degrees item 4 $nGhtSteps  
+	$ght {InvertNormals} setValue 0 1
+	$ght {Options} setValue 0 1
+	$ght {Options} setValue 1 0
+	$ght {Options} setValue 2 1
+	$ght {Threads} setMinMax 1 $numCores
+	$ght {Threads} setButtons 1
+	$ght {Threads} setIncrement 1
+	$ght {Threads} setValue $numCores
+	$ght {Threads} setSubMinMax 1 $numCores
+	$ght {SortedTransforms} setMinMax 0 1
+	$ght {SortedTransforms} setButtons 1
+	$ght {SortedTransforms} setIncrement 1
+	$ght {SortedTransforms} setValue 0
+	$ght {SortedTransforms} setSubMinMax 0 1
+	$ght fire
+	
+	$ght select
+	$ght fire
+	
+	$ght action hit 
+	$ght fire
+	
+	# invert and watershed accu:
+	set accu [ $ght getResult ]
+	$accu master disconnect
+	$accu fire
+	$accu touchMinMax
+	$accu fire
+	set stat [ create HxTissueStatistics ]
+	$stat data connect $accu
+	$stat fire
+	$stat doIt hit
+	$stat fire
+	set statSpreadSheet [ $stat getResult ]
+	set numRows [ $statSpreadSheet getNumRows ]
+	set maxAccu [ expr { $numRows -1 } ]
+#	set accuRange [ $accu getRange ]
+#	set maxAccu [ lindex $accuRange 1 ]
+	set arith [create HxArithmetic]
+	$arith inputA connect $accu
+	$arith fire
+	$arith expr setValue "-A+$maxAccu"
+	$arith doIt hit
+	$arith fire
+	set invAccu [ $arith getResult ]
+	$invAccu master disconnect
+	$arith inputA disconnect 
+	
+	# hack: resample 
+	set smoothAndResampleForWs 1
+	if { $smoothAndResampleForWs } {
+		set smoother [ create HxImageFilters ]
+		$smoother filter setValueString "Gaussian smoothing"
+		$smoother fire
+		$smoother filter setValue 1 3
+		$smoother fire
+		$smoother kernel setValue 0 5
+		$smoother kernel setValue 1 5
+		$smoother kernel setValue 2 5
+		$smoother data connect $invAccu
+		$smoother fire
+		$smoother action hit 
+		$smoother fire
+		set smoothedInvAccu [ $smoother getResult ]
+		$smoothedInvAccu master disconnect
+		
+		set resampler [ create HxResample ]
+		$resampler fire
+		$resampler data connect $smoothedInvAccu
+		$resampler fire
+		$resampler mode setValue 1
+		$resampler fire
+		$resampler voxelSize setValue 0 3
+		$resampler voxelSize setValue 1 3
+		$resampler voxelSize setValue 2 3
+		$resampler fire
+		$resampler filter setValueString Minimum
+		$resampler fire
+		$resampler action hit
+		$resampler fire
+		set invAccuResampled [ $resampler getResult ]
+		$invAccuResampled master disconnect
+		remove $invAccu
+		set invAccu $invAccuResampled
+
+		remove $resampler
+		remove $smoother
+		remove $smoothedInvAccu
+	}
+	
+	set minusSome [ expr { $maxAccu / 10 } ]
+	set ws [ create Watershed ] 
+	set maxAccuMinusSome [ expr { $maxAccu - $minusSome } ]
+	$ws data connect $invAccu
+	$ws fire
+	$ws Threshold setValue 0 0
+	$ws Threshold setValue 1 $maxAccuMinusSome
+	$ws Steps setValue 0 [ expr { $maxAccuMinusSome / 5 } ]
+	$ws Maximum_threshold_for_new_labels setValue 0 $maxAccuMinusSome
+	$ws fire
+
+	$ws Action hit
+	$ws fire
+	
+	set watershedImage [ $ws getResult ]
+	$watershedImage master disconnect
+	if { $smoothAndResampleForWs } {	
+		set dims [ $image getDims ]
+		set resampler [ create HxResample ]
+		$resampler fire
+		$resampler data connect $watershedImage
+		$resampler fire
+		$resampler mode setValue 0
+		$resampler filter setValueString Box
+		$resampler fire
+		$resampler resolution setValue 0 [ lindex $dims 0 ]
+		$resampler resolution setValue 1 [ lindex $dims 1 ]
+		$resampler resolution setValue 2 [ lindex $dims 2 ]
+		$resampler fire
+		$resampler filter setValueString Minimum
+		$resampler fire
+		$resampler action hit
+		$resampler fire
+		set watershedImageResampled [ $resampler getResult ]
+		$watershedImageResampled master disconnect
+		remove $watershedImage
+		set watershedImage $watershedImageResampled
+
+		remove $resampler
+	}
+
+
+	$this setVar watershedImage $watershedImage
+
+	$this setVar accuImage $accu	
+	
+	# save watershedImage, accuImage and ght transforms: 
+	$accu save AmiraMesh $resultPath$accuName$identifier
+	$watershedImage save AmiraMesh $resultPath$wsName$identifier
+	
+	$ght NumberTransforms setValue 0 $maxNumTrafos
+	$ght fire
+	$ght CreateTransforms hit 0
+	$ght fire
+	set allTrafos [ $ght getResult 1 ]
+	$allTrafos save Transforms\ (binary) $resultPath$trafoName$identifier
+	
+#	echo $this selectEllipses $allTrafos $template $nSpheres $channel2image SelectedSpheres centerList costPerPatch 0 0 1 $profLength $numSamples 1
+#	return
+#	$this selectEllipses $allTrafos $template $nSpheres $channel2image SelectedSpheres centerList costPerPatch 0 0 1 $profLength $numSamples 1
+#	echo $this selectEllipses $allTrafos $template $nSpheres $channel2image SelectedSpheres centerList costPerPatch 0 0 1 $profLength $numSamples 1
+	
+	$this setVar centerList $centerList
+	$this setVar costPerPatch $costPerPatch
+		
+	remove $arith
+	remove $ws 
+	remove $stat
+}
+
+$this proc scanConvManyLabels {surf1 image} {
+	# make list of labels per gst center:
+	# scan conv and probe surf1.
+	# workaround max 255 labels:
+	# extract 255 spheres, arith to correct values, add up
+	set maxLabel 255 
+	set maxPatch [ expr { $maxLabel - 1 } ]
+	
+	set dummySurf255 [ $this extractPatches 0 $maxPatch $surf1 ]
+	echo $this extractPatches 0 $maxPatch $surf1
+	set scanConv [create HxScanConvertSurface]
+	$scanConv field connect $image
+	$scanConv data connect $dummySurf255
+	$scanConv fire 
+	$scanConv action hit
+	$scanConv fire
+	set autoScanConv [$scanConv getResult]
+	$autoScanConv master disconnect
+	$scanConv data disconnect 
+	
+	set numPatches [ $surf1 getNumPatches ]
+
+	set numSC [ expr { $numPatches / $maxLabel } ]
+	incr numSC
+
+	for { set run 1 } { $run < $numSC } { incr run } {
+		set from [ expr { $maxLabel * $run } ] 
+		set to [ expr { $from + $maxPatch } ]
+		echo $this extractPatches $from $to $surf1 
+		set dummySurf255Tmp [ $this extractPatches $from $to $surf1 ]
+		$dummySurf255Tmp copyMaterials $dummySurf255
+		remove $dummySurf255
+		set dummySurf255 $dummySurf255Tmp
+
+		$scanConv data connect $dummySurf255
+		$scanConv fire 
+		$scanConv action hit
+		$scanConv fire
+		set dummyScanConv255 [$scanConv getResult]
+		$dummyScanConv255 master disconnect
+		$scanConv data disconnect 
+		
+		#arith:
+		set accu [create HxArithmetic]
+		$accu inputA connect $autoScanConv
+		$accu fire
+		$accu inputB connect $dummyScanConv255
+		$accu fire
+		$accu expr setValue "(A==0 || B==0) * (A + (B>0)*(B+$from)) + (A>0 && B>0)*A"
+		$accu resultChannels setValue 1
+		$accu fire
+		$accu doIt hit
+		$accu fire
+		set accuScanConvTmp [ $accu getResult ]
+		$accuScanConvTmp master disconnect
+		$accu inputA disconnect 
+		$accu inputB disconnect 
+		
+		remove $autoScanConv
+		set autoScanConv $accuScanConvTmp
+		
+		remove $accu
+		remove $dummyScanConv255
+		
+	}
+
+	remove $dummySurf255
+	remove $scanConv
+	
+	return $autoScanConv
+}
+
+$this xproc compareEllipses { surf1 surf2 centers2 &E1withNoE2CenterInside &E1withOneE2CenterInside &E1withMultiE2CentersInsideE1 &E2CenterInsideNoE1 &E1IdxP1perE2Center &E2CentersPerE1IdxP1 } {
+	set image [ $this data source ]
+	set invVoxelSize [ $this getVar invVoxelSize ]
+	set zFactor [ lindex $invVoxelSize 2 ]
+	set numAuto [ $surf1 getNumPatches ]
+	set numGst [ $surf2 getNumPatches ]
+
+	set autoScanConv [ $this scanConvManyLabels $surf1 $image]
+
+	# init list of gst centers per auto:
+	set E2CentersPerE1IdxP1 {}
+	for { set a 0 } { $a <= $numAuto } { incr a } {
+		lappend E2CentersPerE1IdxP1 {} 
+	}
+	# make list of labels per gst center:
+	set E1IdxP1PerE2Center {} 
+	for { set g 0 } { $g < $numGst } { incr g } {
+		set center [ lindex $centers2 $g ]
+		set centerX [lindex $center 0]
+		set centerY [lindex $center 1]
+		set centerZ [ expr { [lindex $center 2]*$zFactor }]
+		# set autoIdxP1 [ eval $mergeSurfLabels getValue $center ]
+		set autoIdxP1 [ $autoScanConv getValue $centerX $centerY $centerZ ]
+		set autoIdxP1 [ expr { round($autoIdxP1) } ]
+		if { $autoIdxP1 > $numAuto } {
+			echo "overlap!"
+			set autoIdxP1 0
+		}
+		# set auto [ expr { $autoIdxP1 - 1 } ]
+		lappend E1IdxP1PerE2Center $autoIdxP1 
+		set gstCentersOfCurrentAuto [ lindex $E2CentersPerE1IdxP1 $autoIdxP1 ]
+		lappend gstCentersOfCurrentAuto $g 
+		set E2CentersPerE1IdxP1 [ lreplace $E2CentersPerE1IdxP1 $autoIdxP1 $autoIdxP1 $gstCentersOfCurrentAuto ]
+	}
+
+	set E1withNoE2CenterInside {}
+	set E1withOneE2CenterInside {}
+	set E1withMultiE2CentersInsideE1 {}
+	for { set a 1 } { $a <= $numAuto } { incr a } {
+		# gst center inside?
+		set gstCentersInside [ lindex $E2CentersPerE1IdxP1 $a ] 
+		set howmany [ llength $gstCentersInside ]
+		if { $howmany == 0 } { 
+			lappend E1withNoE2CenterInside [ expr { $a - 1 } ]
+		} else {
+			if { $howmany > 1 } {
+				#todo: select best:
+				#1st that comes up:
+				# set idx 0 
+				lappend E1withMultiE2CentersInsideE1 [ expr { $a - 1 } ]
+			} else {
+				# set idx 0 
+				lappend E1withOneE2CenterInside [ expr { $a - 1 } ]
+			}
+			# set gstInside [ lindex $gstCentersInside $idx ]	
+		}
+	}
+
+	set E2CenterInsideNoE1 [ lindex $E2CentersPerE1IdxP1 0 ]
+
+	echo ellipse1 with 1 ellipse2 center inside: [ llength $E1withOneE2CenterInside ]
+	echo ellipse1 with 0 ellipse2 centers inside: [ llength $E1withNoE2CenterInside ]
+	echo ellipse1 with >1 ellipse2 centers inside: [ llength $E1withMultiE2CentersInsideE1 ]
+	echo ellipse2 center not inside any ellipse1: [ llength $E2CenterInsideNoE1 ]
+}
+
+$this proc evalComparison { autoSurf centersAuto gstSurf centersGst } {
+	if { [ llength $centersAuto ] == 0 } {
+		set centerList {} 
+		for { set p 0 } { $p < [ $autoSurf getNumPatches ] } {incr p} {
+			set dummy [ $this extractPatches $p $p $autoSurf ]
+			set center [ $dummy getCenter ]
+			lappend centerList $center
+			remove $dummy
+		}
+		set centersAuto $centerList
+	}
+
+	# check for degenerate surfaces:
+	# list smallest scale...
+	set scaleList {}
+	set aligner [ create HxAlignSurfaces ]
+	set template [ $this template source ]
+	set sphere [ $this extractPatches 0 0 $template ]
+	set numAuto [ $autoSurf getNumPatches ]
+	for { set i 0 } { $i < $numAuto } { incr i } { 
+		set adaptedCurrentSurf [ $this extractPatches $i $i $autoSurf ]
+		$sphere setTransform 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+		$aligner surface_to_be_transformed connect $sphere
+		$aligner reference_surface connect $adaptedCurrentSurf
+		$aligner fire
+		$aligner trafo setValue 2
+		$aligner fire
+		$aligner align hit 1
+		$aligner fire
+		$aligner align hit 2
+		$aligner fire
+		$aligner align hit 0
+		$aligner fire
+		set scaleFactors [ $sphere getScaleFactor ]
+		set minScale [ lindex $scaleFactors 0 ]
+		if { [ lindex $scaleFactors 1 ] < $minScale } {
+			set minScale [ lindex $scaleFactors 1 ] 
+		}
+		if { [ lindex $scaleFactors 2 ] < $minScale } {
+			set minScale [ lindex $scaleFactors 2 ] 
+		}
+		lappend scaleList $minScale
+		
+		$aligner reference_surface disconnect
+		remove $adaptedCurrentSurf
+	}
+	remove $sphere
+	remove $aligner
+	$this setVar scaleList $scaleList
+	echo 1=autoSurf, 2=gstSurf
+	$this compareEllipses $autoSurf $gstSurf $centersGst autoWithNoGstCenterInside autoWithOneGstCenterInside autoWithMultiGstCentersInside gstCenterInsideNoAuto autoIdxP1PerGstCenter gstCentersPerAutoIdxP1 
+	echo 1=gstSurf, 2=autoSurf
+	$this compareEllipses $gstSurf $autoSurf $centersAuto gstWithNoAutoCenterInside gstWithOneAutoCenterInside gstWithMultiAutoCentersInside autoCenterInsideNoGst gstIdxP1PerAutoCenter autoCentersPerGstIdxP1 
+	
+	# find 1-1 pairs: 
+	set pairs11AutoGst {}
+	set pair11Scales {}
+	for { set i 0 } { $i < [llength $autoWithOneGstCenterInside] } {incr i} {
+		set a [ lindex $autoWithOneGstCenterInside $i ]
+		set aP1 [ expr { $a + 1 } ]
+		set g [ lindex $gstCentersPerAutoIdxP1 $aP1 ]
+		set gP1 [ expr { $g + 1 } ]
+		set aReverse [ lindex $autoCentersPerGstIdxP1 $gP1 ]
+		set lAReverse [ llength $aReverse ] 
+		if { $lAReverse == 1 } {
+			set firstAReverse [ lindex $aReverse 0 ]
+			if { $firstAReverse == $a } {
+				set pair {} 
+				lappend pair $a 
+				lappend pair $g
+				lappend pairs11AutoGst $pair
+				lappend pair11Scales [ lindex $scaleList $a ]
+			} else {
+				echo a: $a, g: $g, reverseA: $firstAReverse
+			}			
+		}
+	}
+	$this setVar pair11Scales $pair11Scales
+
+	echo "1-1 pairs: [ llength $pairs11AutoGst ]"
+	set pairsSurf [ $this extractListOfPatches $pairs11AutoGst $autoSurf]
+	rename $pairsSurf Pairs
+
+	# find false positives:
+	# auto with 0 gst centers inside: $autoWithNoGstCenterInside
+	# AND
+	# auto center not within any gst
+	set autoCenterNotWithinAnyGst [ lindex $autoCentersPerGstIdxP1 0 ]
+	set n [ llength $autoWithNoGstCenterInside ]
+	set falsePositives {} 
+	set falsePositiveScales {}
+	for { set i 0 } { $i < $n } { incr i } {
+		set a [ lindex $autoWithNoGstCenterInside $i ]
+		set isAthere [ lsearch $autoCenterNotWithinAnyGst $a ]
+		if { $isAthere > -1 } {
+			lappend falsePositives $a
+			lappend falsePositiveScales [ lindex $scaleList $a ]
+		}
+	}
+	$this setVar falsePositiveScales $falsePositiveScales
+	echo "false positives: [ llength $falsePositives ]"
+	set falsePositiveSurf [ $this extractListOfPatches $falsePositives $autoSurf ]
+	rename $falsePositiveSurf FalsePosistives
+
+	set gstCenterNotWithinAnyAuto [ lindex $gstCentersPerAutoIdxP1 0 ]
+	set n [ llength $gstWithNoAutoCenterInside ]
+	set falseNegatives {} 
+	for { set i 0 } { $i < $n } { incr i } {
+		set g [ lindex $gstWithNoAutoCenterInside $i ]
+		set isGthere [ lsearch $gstCenterNotWithinAnyAuto $g ]
+		if { $isGthere > -1 } {
+			lappend falseNegatives $g
+		}
+	}
+	echo "false negatives: [ llength $falseNegatives ]"
+	set falseNegativeSurf [ $this extractListOfPatches $falseNegatives $gstSurf ]
+	rename $falseNegativeSurf FalseNegatives
+
+	# what is left of auto: 
+	set others {} 
+	set numPairs [ llength $pairs11AutoGst ]
+	for { set i 0 } { $i < $numPairs } { incr i } {
+		set pair [ lindex $pairs11AutoGst $i ]
+		set o [ lindex $pair 0 ]
+		lappend others $o
+	}
+	set space " "
+	set others "$others $falsePositives"
+	set toMergeOrSplit {}
+	set toMergeOrSplitScales {}
+	for { set i 0 } { $i < $numAuto } { incr i } { 
+		set isThere [ lsearch $others $i ]
+		if { $isThere < 0 } {
+			lappend toMergeOrSplit $i
+			lappend toMergeOrSplitScales [ lindex $scaleList $i ]
+		}
+	}
+	$this setVar toMergeOrSplitScales $toMergeOrSplitScales
+	echo "toMergeOrSplit: [ llength $toMergeOrSplit ]"
+	set splitMergeSurf [ $this extractListOfPatches $toMergeOrSplit $autoSurf ]
+	rename $splitMergeSurf SplitOrMerge
+	
+}
+
+$this proc getCentersAsLandmarks { surface } {
+	set resultLandmarks [create HxLandmarkSet]
+
+	set numSpheres [ $surface getNumPatches ]
+
+	for { set i 0 } { $i < $numSpheres } {incr i} {
+		set nextSurf  [ $this extractPatches $i $i $surface ]
+		
+		set center [ $nextSurf getCenter ]
+		
+		eval $resultLandmarks appendLandmark $center
+
+		remove $nextSurf
+	}
+	return $resultLandmarks
+}
+
+
+$this proc adapt {surface image mask adapt profLength numSamples outside} {
+	if { $adapt==0 } {
+		echo not adapting, returning duplicate
+		return [ $surface duplicate ]
+	} 
+	if { $outside==1 } {
+		echo adaptFromOutside
+		$this adaptFromOutside $surface $image $mask $profLength $numSamples
+	} else { 
+		echo adaptFromInside
+		$this adaptFromInside $surface $image $mask $profLength $numSamples
+	}
+}
+
+$this proc adaptFromOutside {surface image mask profLength numSamples} {
+	
+	set thresh [ $this params getValue 0 ]
+	set tol [ $this params getValue 1 ]
+	set gradThresh [ $this params getValue 2 ]
+
+	# make ActiveSurf
+	# adjustActiveSurf
+	# adjustDeformableSurf
+
+	create {HxAddToActiveSurface} {AddToActiveSurface}
+	{AddToActiveSurface} {data} connect $surface
+	{AddToActiveSurface} fire
+
+	[ {AddToActiveSurface} create result ] setLabel {ActiveSurface}
+	{ActiveSurface} {master} connect {AddToActiveSurface} result
+	{ActiveSurface} fire
+	ActiveSurface setTransform 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+	ActiveSurface fire
+
+	create {HxAdjustActiveSurface} {AdjustActiveSurface}
+	{AdjustActiveSurface} {data} connect $image
+	{AdjustActiveSurface} {activeSurface} connect ActiveSurface
+	{AdjustActiveSurface} fire
+	if { [ expr {$mask!=0} ] } {{AdjustActiveSurface} {maskData} connect $mask}
+	{AdjustActiveSurface} fire
+	{AdjustActiveSurface} setMaxIterations 10
+	{AdjustActiveSurface} {algorithm} setValueString 0 "PelvicBoneCTCostFunction2"
+	{AdjustActiveSurface} fire
+	{AdjustActiveSurface} {options} setValue 0 1
+	{AdjustActiveSurface} {options} setValue 1 1
+	{AdjustActiveSurface} {options} setValue 2 0
+	{AdjustActiveSurface} {options} setValue 3 0
+	{AdjustActiveSurface} {adjust} setValue 1
+	{AdjustActiveSurface} {mode} setValue 1
+	{AdjustActiveSurface} {multiLevel} setValue 0 0
+	{AdjustActiveSurface} {multiLevel} setValue 1 0
+	{AdjustActiveSurface} {multiLevel} setValue 2 0
+	{AdjustActiveSurface} {trafoType} setValue 2
+	{AdjustActiveSurface} {show} setValue 0
+	{AdjustActiveSurface} {intersect} setValue 0
+	{AdjustActiveSurface} {profiles} setValue 0 $numSamples
+	{AdjustActiveSurface} {profiles} setValue 1 $profLength
+	{AdjustActiveSurface} {profiles} setValue 2 0
+	{AdjustActiveSurface} {SamplingMethod} setValue 0
+	{AdjustActiveSurface} {OptimizeMethod} setIndex 0 1
+	{AdjustActiveSurface} fire
+	{AdjustActiveSurface} {sampling} setValue 0 1
+	{AdjustActiveSurface} {gradDir} setValue 0
+	{AdjustActiveSurface} {params} setValue 0 $thresh
+	{AdjustActiveSurface} {params} setValue 1 $tol
+	{AdjustActiveSurface} {params} setValue 2 $gradThresh
+	{AdjustActiveSurface} {inside} setValue 0 0
+	{AdjustActiveSurface} {inverted} setValue 0 0
+	{AdjustActiveSurface} {prefFactor} setValue 0 1
+	{AdjustActiveSurface} {ScaleOptions} setValue 0 0
+	{AdjustActiveSurface} {NearestPatches} setState { }
+	{AdjustActiveSurface} {InmostPatches} setState {0 }
+	{AdjustActiveSurface} {IgnorePatches} setState { }
+	{AdjustActiveSurface} {StayTherePatches} setState { }
+	{AdjustActiveSurface} {constraints} setValue 0 1
+	{AdjustActiveSurface} {constraints} setValue 1 0
+	{AdjustActiveSurface} {constraints} setValue 2 100
+	{AdjustActiveSurface} {constraints} setValue 3 0
+	AdjustActiveSurface fire
+	AdjustActiveSurface action hit 0
+    AdjustActiveSurface fire
+
+	set activeResult [ {AdjustActiveSurface} getResult ] 
+	$activeResult {master} connect {AdjustActiveSurface} result
+	$activeResult fire
+
+	set extractedSurface [Active-Shape extractSurface]
+
+	create {HxAdjustDeformableSurface} {AdjustDeformableSurface}
+	{AdjustDeformableSurface} {data} connect $image
+	{AdjustDeformableSurface} {referenceSurface} connect $extractedSurface
+	{AdjustDeformableSurface} fire
+	if { [ expr {$mask!=0} ] } {{AdjustDeformableSurface} {maskData} connect $mask}
+	{AdjustDeformableSurface} fire
+	{AdjustDeformableSurface} setMaxIterations 3
+	{AdjustDeformableSurface} {algorithm} setValueString 0 "PelvicBoneCTCostFunction2"
+	{AdjustDeformableSurface} fire
+	{AdjustDeformableSurface} {options} setValue 0 0
+	{AdjustDeformableSurface} {options} setValue 1 1
+	{AdjustDeformableSurface} {options} setValue 2 1
+	{AdjustDeformableSurface} {options} setValue 3 1
+	{AdjustDeformableSurface} {options} setValue 4 1
+	{AdjustDeformableSurface} {options} setValue 5 1
+	{AdjustDeformableSurface} {adjust} setValue 1
+	{AdjustDeformableSurface} {show} setValue 0
+	{AdjustDeformableSurface} {tolDistance} setValue 0 20
+	{AdjustDeformableSurface} {intersect} setValue 0
+	{AdjustDeformableSurface} {profiles} setValue 0 $numSamples
+	{AdjustDeformableSurface} {profiles} setValue 1 $profLength
+	{AdjustDeformableSurface} {profiles} setValue 2 0
+	{AdjustDeformableSurface} {SamplingMethod} setValue 0
+	{AdjustDeformableSurface} {OptimizeMethod} setIndex 0 1
+	{AdjustDeformableSurface} fire
+	{AdjustDeformableSurface} {sampling} setValue 0 1
+	{AdjustDeformableSurface} {gradDir} setValue 0
+	{AdjustDeformableSurface} {params} setValue 0 $thresh
+	{AdjustDeformableSurface} {params} setValue 1 $tol
+	{AdjustDeformableSurface} {params} setValue 2 $gradThresh
+	{AdjustDeformableSurface} {inside} setValue 0 0
+	{AdjustDeformableSurface} {inverted} setValue 0 0
+	{AdjustDeformableSurface} {prefFactor} setValue 0 0.1
+	{AdjustDeformableSurface} {ScaleOptions} setValue 0 0
+	{AdjustDeformableSurface} {NearestPatches} setState { }
+	{AdjustDeformableSurface} {InmostPatches} setState {0 }
+	{AdjustDeformableSurface} {IgnorePatches} setState { }
+	{AdjustDeformableSurface} {StayTherePatches} setState { }
+	AdjustDeformableSurface fire
+	AdjustDeformableSurface action hit 0
+	AdjustDeformableSurface fire
+	$this setVar totalCost [ AdjustDeformableSurface costInfo getValue ] 
+
+	[ {AdjustDeformableSurface} create result ] setLabel {Deformable-Surface}
+	{Deformable-Surface} {master} connect {AdjustDeformableSurface} result
+	{Deformable-Surface} fire
+	Deformable-Surface setTransform 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+	Deformable-Surface fire
+
+	set hideNewModules 0
+	[ AdjustDeformableSurface getResult result1  ] setLabel {Reference-Surface}
+	{Reference-Surface} {master} connect {AdjustDeformableSurface} result1
+	{Reference-Surface} fire
+	Reference-Surface setTransform 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+
+	Deformable-Surface master disconnect 
+
+	remove AddToActiveSurface
+	remove ActiveSurface
+	remove AdjustActiveSurface
+	remove Active-Shape
+	remove $extractedSurface
+	remove AdjustDeformableSurface
+	remove Reference-Surface
+
+	return Deformable-Surface
+}
+
+$this proc adaptFromInside {surface image mask profLength numSamples} {
+	
+	set thresh [ $this params getValue 0 ]
+	set tol [ $this params getValue 1 ]
+	set gradThresh [ $this params getValue 2 ]
+
+	create {HxAdjustDeformableSurface} {AdjustDeformableSurface}
+	{AdjustDeformableSurface} {data} connect $image
+	{AdjustDeformableSurface} {referenceSurface} connect $surface
+	{AdjustDeformableSurface} fire
+	if { [ expr {$mask!=0} ] } {{AdjustDeformableSurface} {maskData} connect $mask}
+	{AdjustDeformableSurface} fire
+	{AdjustDeformableSurface} setMaxIterations 12
+	{AdjustDeformableSurface} {algorithm} setValueString 0 "PelvicBoneCTCostFunction2"
+	{AdjustDeformableSurface} fire
+	{AdjustDeformableSurface} {options} setValue 0 0
+	{AdjustDeformableSurface} {options} setValue 1 1
+	{AdjustDeformableSurface} {options} setValue 2 1
+	{AdjustDeformableSurface} {options} setValue 3 1
+	{AdjustDeformableSurface} {options} setValue 4 1
+	{AdjustDeformableSurface} {options} setValue 5 1
+	{AdjustDeformableSurface} {adjust} setValue 1
+	{AdjustDeformableSurface} {show} setValue 0
+	{AdjustDeformableSurface} {tolDistance} setValue 0 20
+	{AdjustDeformableSurface} {intersect} setValue 0
+	{AdjustDeformableSurface} {profiles} setValue 0 $numSamples
+	{AdjustDeformableSurface} {profiles} setValue 1 $profLength
+	{AdjustDeformableSurface} {profiles} setValue 2 0
+	{AdjustDeformableSurface} {SamplingMethod} setValue 0
+	{AdjustDeformableSurface} {OptimizeMethod} setIndex 0 1
+	{AdjustDeformableSurface} fire
+	{AdjustDeformableSurface} {sampling} setValue 0 1
+	{AdjustDeformableSurface} {gradDir} setValue 0
+	{AdjustDeformableSurface} {params} setValue 0 $thresh
+	{AdjustDeformableSurface} {params} setValue 1 $tol
+	{AdjustDeformableSurface} {params} setValue 2 $gradThresh
+	{AdjustDeformableSurface} {inside} setValue 0 0
+	{AdjustDeformableSurface} {inverted} setValue 0 0
+	{AdjustDeformableSurface} {prefFactor} setValue 0 2
+	{AdjustDeformableSurface} {ScaleOptions} setValue 0 0
+	{AdjustDeformableSurface} {NearestPatches} setState { }
+	{AdjustDeformableSurface} {InmostPatches} setState { }
+	{AdjustDeformableSurface} {IgnorePatches} setState { }
+	{AdjustDeformableSurface} {StayTherePatches} setState { }
+	AdjustDeformableSurface fire
+	AdjustDeformableSurface action hit 0
+	AdjustDeformableSurface fire
+	$this setVar totalCost [ AdjustDeformableSurface costInfo getValue ] 
+
+
+	[ {AdjustDeformableSurface} create result ] setLabel {Deformable-Surface}
+	{Deformable-Surface} {master} connect {AdjustDeformableSurface} result
+	{Deformable-Surface} fire
+	Deformable-Surface setTransform 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+	Deformable-Surface fire
+
+	set hideNewModules 0
+	[ AdjustDeformableSurface getResult result1  ] setLabel {Reference-Surface}
+	{Reference-Surface} {master} connect {AdjustDeformableSurface} result1
+	{Reference-Surface} fire
+	Reference-Surface setTransform 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+
+	Deformable-Surface master disconnect 
+
+	remove AdjustDeformableSurface
+	remove Reference-Surface
+
+	return Deformable-Surface
+}
+
+# deprecated:
+
+$this xproc selectEllipses { allTrafos template maxNumber image resultSurfName &centerList &costPerPatch firstIndex startTrafo adapt profLength numSamples outside} {
+	set invVoxelSize [ $this getVar invVoxelSize ]
+	set offset [ $this getVar offset ] 
+	set maxT [ $this maxNumTrafos getValue 0 ]
+	set resultPath [ $this getVar resultPath ]
+	
+	set maxDilate 2
+	
+	set accuImage [ $this getVar accuImage ]
+
+	set stat [ create HxTissueStatistics ]
+
+	set adder [create HxArithmetic]
+
+	set adapted "Adapted"
+	set mat Material
+	set NCA NoCenterArea
+
+	set identifier [ $this getVar identifier ]
+	set surfExt ".surf"
+	set resultFilename $resultPath$resultSurfName
+	
+#	set currentTrafo [ $ght SortedTransforms getValue ]
+#	set startTrafo $currentTrafo
+
+	if { $firstIndex == 0 } {	
+		set centerList {}
+		set costPerPatch {}
+		set accuFitPerPatch {}
+		
+#		set startTrafo 1
+
+		# set sphere [$template duplicate]
+
+#		$ght SortedTransforms setValue 0
+#		$ght fire
+		eval $template setTransform [ $allTrafos getTransform $startTrafo ]
+		set startSurf [$template duplicate]
+		$startSurf applyTransform
+		set mergeSurf $startSurf
+		set startSurfOnePatch [ $this extractPatches 0 0 $startSurf ]
+		set mergeSurfAdapted [ $this adapt $startSurfOnePatch $image 0 $adapt $profLength $numSamples $outside]
+		remove $startSurfOnePatch
+
+		#set currentIndex 0
+		$mergeSurf setMaterialName 1 $mat$firstIndex
+		$mergeSurfAdapted setMaterialName 1 $mat$firstIndex
+		
+		# store center and totalCost via list
+		set centerAdapted [ $mergeSurfAdapted getCenter ]
+		set totalCost [ $this getVar totalCost ]
+		lappend centerList $centerAdapted
+		lappend costPerPatch $totalCost
+		
+		rename $mergeSurf $resultSurfName
+		rename $mergeSurfAdapted $resultSurfName$adapted
+		
+		incr startTrafo
+		
+	} else {
+		set centerList [ $this getVar centerList ]
+		set costPerPatch [ $this getVar costPerPatch ]
+		# set accuFitPerPatch [ $this getVar accuFitPerPatch ]
+		set accuFitPerPatch {}
+	}
+
+	set mergeSurf $resultSurfName
+	set mergeSurfAdapted $resultSurfName$adapted
+
+
+	set scanConv [create HxScanConvertSurface]
+	$scanConv field connect $image
+	$scanConv data connect $mergeSurfAdapted
+	$scanConv fire 
+	$scanConv action hit
+	$scanConv fire
+	$scanConv data disconnect
+	$scanConv field disconnect
+	set mergeSurfLabels [$scanConv getResult]
+	$mergeSurfLabels master disconnect
+	set mSL MergeSurfLabels
+	
+	if { $firstIndex == 0 } {	
+		set noCenterArea [$mergeSurfLabels duplicate]
+		incr firstIndex
+	} else {
+		set noCenterArea [ $this getVar noCenterArea ]
+	}
+
+	set mergeSurfLabelsEroded [$mergeSurfLabels duplicate]
+	
+	$mergeSurfLabelsEroded dilate 0 2
+
+#	set numTrafos [ $ght SortedTransforms getMaxValue ]
+	set numTrafos [ $allTrafos getNumTransforms ]
+	if { $maxT > $numTrafos } {
+		set maxT $numTrafos 
+	}
+	
+	set factorX [ lindex $invVoxelSize 0 ]
+	set factorY [ lindex $invVoxelSize 1 ]
+	set factorZ [ lindex $invVoxelSize 2 ]
+	set oX [ lindex $offset 0 ]
+	set oY [ lindex $offset 1 ]
+	set oZ [ lindex $offset 2 ]
+	
+	for {set i $startTrafo} {$i<$maxT} {incr i} {
+		# set currentNum [llength $costPerPatch]
+		set currentNum [$mergeSurfAdapted getNumPatches ]
+		set togo [ expr { $maxNumber - $currentNum } ]
+		echo togo: $togo
+		if { $togo < 1 } {
+		#	remove $mergeSurfLabels
+		#	remove $mergeSurfLabelsEroded
+		#	remove $noCenterArea
+			echo start next run with trafo (idx): $i
+			echo start next run with ellipse (idx): $currentNum
+			$this setVar noCenterArea $noCenterArea
+			$this setVar accuFitPerPatch $accuFitPerPatch
+			remove $adder
+			remove $scanConv
+			return
+		}
+
+		echo processing trafo $i
+#		$ght SortedTransforms setValue $i
+#		$ght fire
+		eval $template setTransform [ $allTrafos getTransform $i ]
+		set currentSurf [$template duplicate]
+		$currentSurf applyTransform
+		
+		set center [ $currentSurf getCenter ]
+		set centerX [lindex $center 0]
+		set centerY [lindex $center 1]
+		set centerZ [lindex $center 2]
+		# set centerVal [ eval $mergeSurfLabels getValue $center ]
+		# minus offset: 
+		set dummyX [ expr { $centerX - $oX } ]
+		set dummyY [ expr { $centerY - $oY } ]
+		set dummyZ [ expr { $centerZ - $oZ } ]
+		set voxelX [ expr { $dummyX*$factorX }]
+		set voxelY [ expr { $dummyY*$factorY }]
+		set voxelZ [ expr { $dummyZ*$factorZ }]
+		set centerVal [ $noCenterArea getValue $voxelX $voxelY $voxelZ ]
+		echo centerVal of noCenterArea image: $centerVal
+		
+		if { $centerVal==0 } {
+			# extract 0-th patch if there are more: 
+			set currentSurfOnePatch [ $this extractPatches 0 0 $currentSurf ]
+			
+			set tol 3
+			set bbox [ $currentSurfOnePatch getBoundingBox ]
+			set imin [ expr { [ lindex $bbox 0 ] - $tol } ]
+			set imax [ expr { [ lindex $bbox 1 ] + $tol } ]
+			set jmin [ expr { [ lindex $bbox 2 ] - $tol } ]
+			set jmax [ expr { [ lindex $bbox 3 ] + $tol } ]
+			set kmin [ expr { [ lindex $bbox 4 ] - $tol } ]
+			set kmax [ expr { [ lindex $bbox 5 ] + $tol } ]
+
+			set imin [ expr { $imin - $oX } ]
+			set imin [ expr { $imin*$factorX }]
+			set imax [ expr { $imax - $oX } ]
+			set imax [ expr { $imax*$factorX }]
+
+			set jmin [ expr { $jmin - $oY } ]
+			set jmin [ expr { $jmin*$factorY }]
+			set jmax [ expr { $jmax - $oY } ]
+			set jmax [ expr { $jmax*$factorY }]
+
+			set kmin [ expr { $kmin - $oZ } ]
+			set kmin [ expr { $kmin*$factorZ }]
+			set kmax [ expr { $kmax - $oZ } ]
+			set kmax [ expr { $kmax*$factorZ }]
+			
+			# crop mergeSurfLabelsEroded
+			set mergeSurfLabelsErodedCropped [ $mergeSurfLabelsEroded duplicate ]
+			$mergeSurfLabelsErodedCropped crop $imin $imax $jmin $jmax $kmin $kmax 
+
+			$scanConv data connect $currentSurfOnePatch
+			$scanConv field connect $mergeSurfLabelsErodedCropped
+			$scanConv fire 
+			$scanConv action hit
+			$scanConv fire
+			set currentSurfLabelsCropped [$scanConv getResult]
+			$currentSurfLabelsCropped master disconnect
+			$scanConv data disconnect
+			$scanConv field disconnect
+
+			$adder inputA connect $mergeSurfLabelsErodedCropped
+			$adder fire
+			$adder inputB connect $currentSurfLabelsCropped
+			$adder fire
+			$adder expr setValue "A>0 && B>0"
+			$adder doIt hit
+			$adder fire
+			set checkOverlapLabels [ $adder getResult ]
+			$checkOverlapLabels master disconnect
+			$adder inputA disconnect 
+			$adder inputB disconnect 
+
+
+			set useMaterialStatistics 1
+			set someTime 3000
+			if { $useMaterialStatistics } {
+				$stat data connect $checkOverlapLabels
+				$stat fire
+				$stat doIt hit
+				$stat fire
+				set statSpreadSheet [ $stat getResult ]
+				set numRows [ $statSpreadSheet getNumRows ]
+				set numLabelsVal 1
+				if { $numRows > 1 } { 
+					set numVoxelsIntersect [ $statSpreadSheet getValue 3 1 ]
+					if { $numVoxelsIntersect > 0 } {
+						set numLabelsVal 2
+					}
+				}
+				$stat data disconnect
+				echo num labels of checkOverlapLabels: $numLabelsVal 
+				set overlap [ expr { $numLabelsVal - 1 } ]
+			} else { 
+				$checkOverlapLabels touchMinMax
+				$checkOverlapLabels fire
+				after $someTime
+				set overlap [ lindex [ $checkOverlapLabels getRange ] 1 ]
+			}
+			echo overlap: $overlap
+			
+			remove $currentSurfLabelsCropped
+			remove $mergeSurfLabelsErodedCropped
+			remove $checkOverlapLabels
+			
+			if {$overlap==0} {
+				set adaptedCurrentSurf [ $this adapt $currentSurfOnePatch $image $mergeSurfLabels $adapt $profLength $numSamples $outside]
+				
+				set bbox [ $adaptedCurrentSurf getBoundingBox ]
+				set imin [ expr { [ lindex $bbox 0 ] - $tol } ]
+				set imax [ expr { [ lindex $bbox 1 ] + $tol } ]
+				set jmin [ expr { [ lindex $bbox 2 ] - $tol } ]
+				set jmax [ expr { [ lindex $bbox 3 ] + $tol } ]
+				set kmin [ expr { [ lindex $bbox 4 ] - $tol } ]
+				set kmax [ expr { [ lindex $bbox 5 ] + $tol } ]
+
+				set imin [ expr { $imin - $oX } ]
+				set imin [ expr { $imin*$factorX }]
+				set imax [ expr { $imax - $oX } ]
+				set imax [ expr { $imax*$factorX }]
+
+				set jmin [ expr { $jmin - $oY } ]
+				set jmin [ expr { $jmin*$factorY }]
+				set jmax [ expr { $jmax - $oY } ]
+				set jmax [ expr { $jmax*$factorY }]
+
+				set kmin [ expr { $kmin - $oZ } ]
+				set kmin [ expr { $kmin*$factorZ }]
+				set kmax [ expr { $kmax - $oZ } ]
+				set kmax [ expr { $kmax*$factorZ }]
+
+				# crop mergeSurfLabelsEroded
+				set mergeSurfLabelsErodedCropped2 [ $mergeSurfLabelsEroded duplicate ]
+				$mergeSurfLabelsErodedCropped2 crop $imin $imax $jmin $jmax $kmin $kmax 
+
+				$scanConv data connect $adaptedCurrentSurf
+				$scanConv field connect $mergeSurfLabelsErodedCropped2
+				$scanConv fire 
+				$scanConv action hit
+				$scanConv fire
+				set adaptedCurrentSurfLabelsCroppedEroded [$scanConv getResult]
+				$adaptedCurrentSurfLabelsCroppedEroded master disconnect
+				$scanConv data disconnect
+				$scanConv field disconnect
+				
+				set dilate $maxDilate
+				for { set d 0 } { $d < $maxDilate } { incr d } {
+					set adaptedCurrentSurfLabelsTmp [$adaptedCurrentSurfLabelsCroppedEroded duplicate]
+					$adaptedCurrentSurfLabelsTmp dilate 0 1
+					$adaptedCurrentSurfLabelsTmp touchMinMax
+					$adaptedCurrentSurfLabelsTmp fire	
+
+					if { $useMaterialStatistics } {
+						$stat data connect $adaptedCurrentSurfLabelsTmp
+						$stat fire
+						$stat doIt hit
+						$stat fire
+						set statSpreadSheet [ $stat getResult ]
+						set numRows [ $statSpreadSheet getNumRows ]
+						set numLabelsVal 1
+						if { $numRows > 1 } { 
+							set numVoxelsInterior [ $statSpreadSheet getValue 3 1 ]
+							if { $numVoxelsInterior > 0 } {
+								set numLabelsVal 2
+							}
+						}
+						$stat data disconnect
+						echo num labels of adaptedCurrentSurfLabelsTmp: $numLabelsVal 
+					} else { 
+						after $someTime
+						set maxLabel [ lindex [ $adaptedCurrentSurfLabelsTmp getRange ] 1 ]
+						set numLabelsVal [ expr { $maxLabel + 1 } ]
+					}
+					# set maxVal [ lindex [ $adaptedCurrentSurfLabelsTmp getRange ] 1 ]
+					if { $numLabelsVal == 1 } {
+						remove $adaptedCurrentSurfLabelsTmp
+						echo patch $i vanished by erosion 
+						set dilate $d 						
+						break
+					} else {
+						remove $adaptedCurrentSurfLabelsCroppedEroded
+						set adaptedCurrentSurfLabelsCroppedEroded $adaptedCurrentSurfLabelsTmp
+					}
+				}
+				
+				$adder inputA connect $mergeSurfLabelsErodedCropped2
+				$adder fire
+				$adder inputB connect $adaptedCurrentSurfLabelsCroppedEroded
+				$adder fire
+				$adder expr setValue "A>0 && B>0"
+				$adder doIt hit
+				$adder fire
+				set mergeSurfLabelsCroppedErodedTmp [ $adder getResult ]
+				$mergeSurfLabelsCroppedErodedTmp master disconnect
+				$adder inputA disconnect 
+				$adder inputB disconnect 
+				
+				if { $useMaterialStatistics } {
+					$stat data connect $mergeSurfLabelsCroppedErodedTmp
+					$stat fire
+					$stat doIt hit
+					$stat fire
+					set statSpreadSheet [ $stat getResult ]
+					set numRows [ $statSpreadSheet getNumRows ]
+					set numLabelsVal 1
+					if { $numRows > 1 } { 
+						set numVoxelsIntersect [ $statSpreadSheet getValue 3 1 ]
+						if { $numVoxelsIntersect > 0 } {
+							set numLabelsVal 2
+						}
+					}
+					$stat data disconnect
+					echo num labels of mergeSurfLabelsCroppedErodedTmp: $numLabelsVal 
+					set overlapEroded [ expr { $numLabelsVal - 1 } ]
+				} else {
+					$mergeSurfLabelsCroppedErodedTmp touchMinMax
+					$mergeSurfLabelsCroppedErodedTmp fire
+					after $someTime
+					set overlapEroded [ lindex [ $mergeSurfLabelsCroppedErodedTmp getRange ] 1 ]
+				}
+				remove $adaptedCurrentSurfLabelsCroppedEroded
+				remove $mergeSurfLabelsCroppedErodedTmp
+				remove $mergeSurfLabelsErodedCropped2
+
+				if { $overlapEroded == 0 } {
+					echo adding new ellipse!
+					
+					$currentSurf setMaterialName 1 $mat$firstIndex
+					$adaptedCurrentSurf setMaterialName 1 $mat$firstIndex
+					$mergeSurf merge $currentSurf
+					$mergeSurfAdapted merge $adaptedCurrentSurf
+					incr firstIndex
+
+					echo $scanConv data connect $adaptedCurrentSurf ...
+					$scanConv data connect $adaptedCurrentSurf
+					$scanConv field connect $image
+					$scanConv fire 
+					$scanConv action hit
+					$scanConv fire
+					set adaptedCurrentSurfLabels [$scanConv getResult]
+					$adaptedCurrentSurfLabels master disconnect
+					$scanConv data disconnect
+					$scanConv field disconnect
+
+					set adaptedCurrentSurfLabelsEroded [ $adaptedCurrentSurfLabels duplicate ]
+					if { $dilate > 0 } {
+						echo $adaptedCurrentSurfLabelsEroded dilate 0 $dilate ...
+						$adaptedCurrentSurfLabelsEroded dilate 0 $dilate
+					}
+
+					echo $adder inputA connect $mergeSurfLabelsEroded ...
+					$adder inputA connect $mergeSurfLabelsEroded
+					$adder fire
+					$adder inputB connect $adaptedCurrentSurfLabelsEroded
+					$adder fire
+					$adder expr setValue "A>0 || B>0"
+					$adder doIt hit
+					$adder fire
+					set mergeSurfLabelsErodedTmp [ $adder getResult ]
+					$mergeSurfLabelsErodedTmp master disconnect
+					$adder inputA disconnect 
+					$adder inputB disconnect 
+				
+					remove $mergeSurfLabelsEroded
+					set mergeSurfLabelsEroded $mergeSurfLabelsErodedTmp
+
+					echo $adder inputA connect $mergeSurfLabels ...
+					$adder inputA connect $mergeSurfLabels
+					$adder fire
+					$adder inputB connect $adaptedCurrentSurfLabels
+					$adder fire
+					$adder expr setValue "A>0 || B>0"
+					$adder doIt hit
+					$adder fire
+					set mergeSurfLabelsTmp [ $adder getResult ]
+					$mergeSurfLabelsTmp master disconnect
+					$adder inputA disconnect 
+					$adder inputB disconnect 
+					remove $mergeSurfLabels
+					set mergeSurfLabels $mergeSurfLabelsTmp
+										
+					# store center and totalCost via list
+					set centerAdapted [ $adaptedCurrentSurf getCenter ]
+					set totalCost [ $this getVar totalCost ]
+					lappend centerList $centerAdapted
+					lappend costPerPatch $totalCost
+					
+					set accuFit [ $accuImage getValue $voxelX $voxelY $voxelZ ]
+					lappend accuFitPerPatch $accuFit
+					
+					# get watershed label:
+					set watershedImage [ $this getVar watershedImage ]
+					set watershedLabel [ $watershedImage getValue $voxelX $voxelY $voxelZ ] 
+					$adder inputA connect $noCenterArea
+					$adder fire
+					$adder inputB connect $adaptedCurrentSurfLabels
+					$adder fire
+					$adder inputC connect $watershedImage
+					$adder fire
+					$adder expr setValue "(A>0) || (B>0) || abs(C-$watershedLabel)<0.1"
+					$adder doIt hit
+					$adder fire
+					set noCenterAreaTmp [ $adder getResult ]
+					$noCenterAreaTmp master disconnect
+					$adder inputA disconnect 
+					$adder inputB disconnect 
+					$adder inputC disconnect 
+					remove $noCenterArea
+					set noCenterArea $noCenterAreaTmp
+						
+					remove $adaptedCurrentSurfLabels
+					remove $adaptedCurrentSurfLabelsEroded
+					
+					# save current surf: 
+					$resultSurfName save HxSurface $resultFilename$identifier$surfExt
+					$resultSurfName$adapted save HxSurface $resultFilename$adapted$identifier$surfExt					
+					$noCenterArea save AmiraMesh $resultFilename$NCA$identifier
+				
+				}
+
+				remove $adaptedCurrentSurf
+
+			} else { 
+				if { 0 } {
+					# get watershed label:
+					set watershedImage [ $this getVar watershedImage ]
+					set watershedLabel [ $watershedImage getValue $voxelX $voxelY $voxelZ ] 
+					$adder inputA connect $noCenterArea
+					$adder fire
+					$adder inputB connect $watershedImage
+					$adder fire
+					$adder expr setValue "(A>0) || (B==$watershedLabel)"
+					$adder doIt hit
+					$adder fire
+					set noCenterAreaTmp [ $adder getResult ]
+					$noCenterAreaTmp master disconnect
+					$adder inputA disconnect 
+					$adder inputB disconnect 
+					remove $noCenterArea
+					set noCenterArea $noCenterAreaTmp
+					# if { [ lsearch [all] $noCenterArea$nCA ] < 0 } {
+						# rename $noCenterArea $noCenterArea$nCA
+						# set noCenterArea $noCenterArea$nCA
+					# }
+				}
+			}
+					
+			remove $currentSurfOnePatch
+			
+		}
+			
+		remove $currentSurf
+		
+	}
+	
+}
+
+proc replaceEllipseAtIndex { surface insertIndex surfaceToInsert } {
+	set mat Material
+	$surfaceToInsert setMaterialName 1 $mat$insertIndex
+	
+	set numPatches [ $surface getNumPatches ]
+
+	# extract all before...
+	set surfView [create HxDisplaySurface]
+	$surfView data connect $surface
+	$surfView fire
+	$surfView selectionMode setValueString Patch
+	$surfView fire
+	$surfView Patch setValue 1
+	$surfView fire
+	$surfView Patch setValue 0
+	$surfView fire
+	$surfView buffer hit 1
+	$surfView fire
+	for { set p 0 } { $p < $insertIndex } { incr p } { 
+		$surfView Patch setValue [ expr { $p + 1 } ]
+		$surfView fire
+		$surfView buffer hit 0
+		$surfView fire
+	}
+	set before [ $surfView createSurface ]
+	
+	# extract all after...
+	$surfView Patch setValue 1
+	$surfView fire
+	$surfView Patch setValue 0
+	$surfView fire
+	$surfView buffer hit 1
+	$surfView fire
+	for { set p [ expr {$insertIndex + 1} ] } { $p < $numPatches } { incr p } { 
+		$surfView Patch setValue [ expr { $p + 1 } ]
+		$surfView fire
+		$surfView buffer hit 0
+		$surfView fire
+	}
+	set after [ $surfView createSurface ]
+	
+	remove $surfView
+	
+# replace ellipse
+	$before merge $surfaceToInsert
+	$before merge $after
+	
+	remove $after
+	
+	#rename...
+	# replace downStreamConnections 
+	set connections [ $surface downStreamConnections ]
+	set numConnections [ llength $connections ]
+	for { set i 0 } { $i < $numConnections } { incr i } {
+		set cmd [ lindex $connections $i ]
+		eval $cmd connect $before
+	}
+	remove $surface
+	rename $before $surface
+	
+}
+
+proc initTestLists501 {} {
+	global sortedPatchList
+	global costPerPatch
+	global centerList
+	set centerList { {179.082 57.8795 8.18896} {1282.52 77.7898 26.0474} {1095.77 95.2876 24.2531} {721.114 75.7463 20.0341} {1043.6 82.9963 23.5158} {1308.8 105.748 38.9098} {1072.61 91.8865 24.613} {1239.01 98.2374 23.9508} {1060.4 87.0605 23.8678} {1303.97 94.5228 26.5912} {1072.34 81.2413 30.6747} {217.478 64.2147 15.0408} {1322.19 90.0886 28.8463} {1119.19 128.008 26.4213} {361.612 47.8853 33.1899} {323.788 57.9408 13.5092} {611.698 132.94 23.3514} {890.487 143.938 25.0509} {471.322 115.161 24.5128} {1206.03 126.185 27.0782} {1389.28 99.1417 26.8953} {380.365 79.8117 10.1772} {902.063 141.781 25.8867} {432.765 106.992 29.9874} {311.03 51.6262 14.2189} {351.917 77.7522 18.0804} {643.927 135.328 23.3694} {1003.8 125.027 24.7965} {1251.95 106.124 31.759} {1156.77 121.908 24.9626} {365.791 38.9606 15.8123} {366.794 53.9732 10.0854} {445.245 115.58 21.5128} {322.853 93.7861 18.4781} {393.87 98.9239 38.8363} {944.732 93.5172 22.0155} {177.119 36.5751 35.5681} {1280.14 92.983 46.9733} {1046.96 123.617 23.8196} {673.695 137.316 23.0464} {353.269 104.748 21.0478} {1333.26 92.1975 27.9258} {216.761 21.8505 24.1561} {1157.6 81.5437 32.3309} {297.06 54.9777 12.5456} {1031.47 137.529 26.4239} {1111.86 136.068 27.8906} {249.665 24.259 24.9225} {568.242 128.537 22.1283} {365.99 79.0598 11.8214} {1293.69 82.3362 34.0006} {165.773 42.6258 42.6501} {364.967 58.1905 23.0528} {194.756 47.106 14.6161} {859.178 103.741 20.3231} {875.08 144.445 25.1403} {890.934 108.745 23.1333} {880.787 135.553 50.7952} {363.115 57.8102 47.7267} {199.421 23.4904 25.5601} {185.842 66.8226 42.1039} {1236.69 108.581 46.2342} {335.496 76.4404 16.2579} {1085.8 115.93 57.7048} {1273.62 101.748 33.7022} {740.853 142.273 25.5832} {1059.81 112.375 56.1384} {394.009 87.6925 12.5691} {1271.76 80.5363 26.0825} {284.439 48.7998 10.018} {687.145 96.5094 17.2207} {314.166 66.164 13.3075} {331.057 67.275 17.3565} {1059.37 137.904 26.6776} {153.229 37.6593 11.7947} {1073.83 97.7007 55.8449} {248.81 50.8697 14.8307} {751.299 141.856 26.6177} {339.227 88.8321 39.8376} {260.242 67.2642 14.5206} {644.975 64.9637 20.8284} {425.486 49.9279 15.866} {695.15 138.449 25.1929} {1216.36 124.321 36.6752} {1124.67 97.1757 51.9754} {153.12 50.2285 44.467} {1214.55 118.412 28.4923} {370.315 51.1374 47.9379} {459.731 112.113 24.3296} {639.988 96.2285 16.3279} {368.595 83.0309 33.549} {263.055 71.6572 41.7432} {303.063 42.2138 17.6481} {1268.72 85.2854 41.3059} {840.187 131.311 22.2381} {146.4 28.2006 22.2698} {715.971 141.477 25.3835} {443.237 71.5346 14.9762} {312.377 40.4965 38.2806} {793.742 142.887 25.1069} {1404.45 98.7446 26.8614} {418.318 39.8446 22.8381} {236.548 49.8051 30.2151} {217.244 64.8581 39.1305} {180.212 34.052 19.0342} {822.902 144.725 24.8687} {172.533 70.169 12.683} {386.398 91.0682 46.2645} {392.478 59.9677 13.3789} {119.845 26.0759 18.5382} {977.949 129.323 24.693} {161.965 58.199 9.80554} {325.131 62.4647 51.0292} {725.801 98.5882 18.1821} {1255.98 117.804 29.6954} {385.992 112.434 21.1937} {482.286 111.83 28.0613} {611.153 121.155 48.5582} {1198.98 86.2199 34.035} {155.462 21.0849 23.5466} {1197.97 114.088 25.1117} {400.55 103.022 22.4603} {162.081 31.5435 26.3113} {1032.24 87.6248 26.3687} {337.9 62.9974 52.5235} {1341.13 101.234 28.6486} {625.811 134.5 22.9839} {406.026 81.645 12.3987} {1021.89 138.618 37.6934} {343.815 55.4155 43.5475} {346.382 53.5687 15.6434} {1245.71 84.4693 44.548} {392.337 75.2348 16.7369} {511.908 91.213 50.7304} {276.783 68.0881 51.2581} {401.818 89.9713 49.0772} {1290.7 103.009 41.448} {396.003 60.684 53.998} {329.038 81.5137 28.8164} {769.82 100.088 19.4645} {1014.74 76.3261 34.0299} {729.007 142.254 26.1235} {319.091 33.8546 24.1351} {520.229 80.5275 18.3534} {178.758 60.0086 45.5649} {1031.88 105.241 58.7266} {136.133 71.0224 20.0031} {852.138 144.625 25.3383} {351.934 81.3043 42.2696} {389.905 105.433 18.1167} {511.457 73.9103 15.5621} {1273.53 103.408 46.0812} {346.977 70.3217 12.8467} {380.751 94.9759 20.6141} {304.761 61.9466 47.3823} {950.836 137.716 27.1021} {1040.97 135.598 43.2414} {547.943 124.955 22.8254} {585.187 129.372 22.2682} {1248.31 97.7763 48.1447} {818.66 101.734 19.2031} {328.026 39.9381 36.9349} {994.788 76.5464 28.918} {425.79 106.848 19.6021} {219.969 44.0094 28.3498} {499.659 123.314 22.5537} {207.83 86.6659 21.7728} {353.535 47.9449 17.455} {924.145 106.126 20.7051} {406.519 108.218 31.9051} {1326.54 95.1097 36.5453} {292.795 32.6811 18.4605} {421.648 70.4267 11.7197} {410.491 88.4442 44.5407} {368.165 87.2673 45.7988} {311.103 54.2708 46.6733} {191.84 68.447 25.1043} {1115.84 136.658 40.0898} {293.833 49.7264 44.1147} {1258.09 92.337 39.9704} {334.21 33.7671 26.4383} {357.658 35.1474 32.5959} {1263.35 108.839 44.5876} {832.39 141.496 28.2763} {1150.1 131.955 29.5655} {190.207 37.9532 40.3477} {1177.22 95.9915 24.7481} {422.04 96.77 22.3582} {514.688 106.26 16.0983} {413.434 68.3684 50.0406} {165.321 59.945 43.9347} {1046.63 138.342 26.9506} {377.41 96.3575 36.8184} {987.067 99.3824 21.4604} {247.431 48.7367 41.6329} {314.604 68.7579 39.3479} {191.892 48.506 38.2106} {328.137 93.0091 38.4186} {214.875 43.5691 47.4468} {1044.86 92.7479 26.9614} {1368.68 98.0879 27.3122} {1229.77 124.267 25.0509} {241.338 81.5647 31.7} {236.743 47.085 13.5322} {60.1565 30.9543 15.0168} {295.873 38.0613 35.6726} {931.389 137.053 26.0271} {1246.47 116.927 35.2649} {303.02 32.122 20.0066} {376.332 106.258 21.2127} {416.244 62.5696 19.9203} {68.9859 66.6586 16.639} {527.22 123.571 22.7178} {806.613 141.892 27.7575} {784.069 138.859 30.0173} {277.802 84.3286 23.9045} {992.093 138.822 26.1872} {635.162 134.626 23.1221} {771.278 140.134 26.596} {118.916 50.0463 42.7312} {371.562 72.7244 47.9302} {653.51 133.946 21.4769} {1123.15 136.735 28.4769} {236.66 37.0041 20.4563} {1169.45 132.59 26.7981} {1262.14 95.0784 26.3647} {345.303 35.684 20.0661} {393.312 95.4918 22.0655} {465.601 73.3996 15.553} {422.386 60.6637 30.7644} {257.472 51.0108 15.036} {325.897 69.4721 42.7028} {113.611 36.458 9.56258} {1180.14 129.497 28.5835} {895.284 138.641 41.0498} {245.83 91.5903 22.5924} {940.463 138.447 24.101} {804.981 74.3662 29.58} {207.561 58.9102 36.0009} {368.335 92.1253 24.7086} {1272.3 94.7451 25.0123} {222.059 78.6543 37.8019} {334.565 53.7877 15.4792} {324.78 71.3396 12.1759} {305.773 75.6395 25.9996} {385.809 85.5045 29.5641} {1169.35 132.126 42.0099} {761.727 139.96 32.8254} {206.547 58.178 50.6926} {342.245 88.4556 22.9442} {1012.31 136.78 25.3341} {348.923 61.9292 54.1067} {294.684 46.7345 19.7596} {331.401 78.3923 45.7042} {241.009 63.5115 48.8351} {406.39 77.7491 30.2579} {232.957 57.8375 8.86238} {1252.28 110.002 48.0043} {1306.64 91.1467 38.2186} {1045.02 111.032 57.145} {313.262 89.0805 18.6043} {371.562 59.3787 59.4124} {683.938 137.679 25.4109} {313.899 65.7438 49.7759} {321.076 45.7403 19.6827} {265.657 76.9462 20.8175} {231.394 83.0306 27.0042} {1259.99 83.9472 27.243} {391.299 48.2692 34.5255} {372.787 47.2519 33.9941} {101.92 24.2628 19.1972} {491.204 114.379 40.0645} {115.509 70.1801 17.8665} {321.308 49.2567 44.6664} {1336.55 96.047 36.9783} {287.654 62.1772 50.6234} {287.144 63.6193 8.84212} {350.939 75.9444 54.3642} {137.215 34.6705 34.2986} {501.678 116.841 24.737} {334.523 92.4729 17.8846} {208.9 51.8957 10.3499} {246.021 44.1821 22.413} {197.192 31.6424 18.5219} {356.009 88.1841 36.2084} {181.685 59.1969 33.8486} {1298.49 96.726 39.9089} {906.324 125.571 25.4246} {668.836 80.9509 17.7914} {446.091 85.1317 52.3737} {867.714 90.6366 54.8204} {1203.18 127.9 40.5996} {251.188 62.3414 46.2299} {414.578 53.4725 34.1546} {257.728 41.2605 10.7418} {1114.94 107.177 24.9669} {1208.1 84.7742 34.0819} {181.42 73.2493 18.6134} {371.595 74.0903 20.6347} {460.378 78.4261 53.3869} {146.201 76.5306 25.0016} {416.509 78.8378 41.2911} {1193 114.987 53.3994} {209.459 37.658 10.2371} {1075.11 135.915 28.9417} {826.831 86.1502 18.6978} {232.78 29.5094 22.6079} {95.5891 54.0027 12.3336} {363.466 103.589 24.1449} {1045.03 104.451 22.6419} {445.119 112.044 36.114} {206.326 41.777 20.2157} {974.671 82.636 47.6333} {596.503 73.1395 17.2356} {243.286 41.5439 41.5418} {1141.66 134.667 28.3029} {1229.93 92.4635 27.277} {337.98 46.4106 39.0868} {299.137 79.9343 36.6525} {303.41 37.3537 29.3212} {553.929 126.748 35.9818} {675.906 138.827 37.769} {240.99 63.537 13.6575} {237.62 74.1385 18.4277} {107.368 47.091 39.5272} {350.038 62.7153 12.2908} {565.884 78.6013 55.6537} {295.291 68.0895 36.9591} {372.46 51.8547 21.6638} {346.689 56.2529 25.8533} {310.189 75.3686 47.1708} {912.218 137.972 28.036} {650.699 116.158 50.9569} {431.329 42.0564 40.0551} {319.831 82.1018 24.7228} {208.016 40.5781 39.3681} {968.235 138.814 26.2056} {417.034 104.587 22.4751} {583.846 121.387 17.0326} {264.688 54.9052 10.5556} {247.36 68.5254 16.7597} {397.468 53.7121 18.039} {285.431 30.0773 29.1874} {618.1 130.021 42.2504} {468.164 91.3456 22.7137} {1186.12 121.142 34.6269} {347.422 71.1265 34.2917} {278.064 92.1177 17.4618} {183.734 78.0595 32.4837} {226.721 35.8046 17.599} {434.846 90.0792 52.2201} {968.378 139.188 41.1175} {961.536 94.5121 53.654} {135.957 41.833 19.4579} {357.215 72.5467 41.5819} {96.7307 55.0749 30.2512} {788.452 131.313 21.0945} {316.155 24.0493 27.7074} {429.314 78.0026 18.4241} {1235.33 90.976 37.3026} {474.204 79.3844 53.9388} {700.115 68.1973 24.3601} {160.455 79.8404 20.0488} {898.427 126.507 53.1305} {230.244 44.2053 44.495} {526.386 51.4137 18.1062} {661.648 138.242 23.1583} {295.152 66.8878 48.4573} {840.047 91.6616 19.5784} {311.002 90.3573 36.84} {297.598 28.0838 29.4141} {714.658 94.3822 55.9337} {658.854 121.573 19.5531} {1289.93 95.1873 26.6725} {414.576 111.946 23.491} {392.207 85.4348 28.6413} {387.993 86.5197 55.9627} {199.251 72.0688 26.0989} {1132.04 135.884 28.691} {352.981 62.3143 43.6807} {365.076 100.358 36.2175} {151.448 42.0187 22.3549} {318.218 51.1893 53.3102} {1271.44 112.701 40.9409} {1010.59 135.573 42.1238} {101.264 38.7232 7.96785} {96.6194 38.6701 22.5089} {602.683 80.9595 16.5937} {901.466 75.0641 25.6618} {600.12 99.5479 54.3281} {146.332 18.9322 20.1849} {542.585 120.066 40.1155} {326.396 86.3273 18.2123} {757.333 72.9381 26.1882} {318.054 75.3934 33.7773} {210.05 75.2775 32.8159} {338.449 59.6604 25.9061} {99.5909 68.3712 15.3604} {137.364 61.5969 15.928} {148.383 62.8513 15.8053} {328.353 73.6819 33.7166} {209.002 30.0665 35.8242} {792.14 110.892 55.339} {386.045 101.811 26.4867} {216.899 33.3385 19.9984} {517.064 121.614 22.9329} {327.799 39.916 14.5223} {393.451 75.3316 50.5245} {209.93 61.6732 22.4465} {250.236 69.1876 40.8457} {159.175 59.163 34.4564} {815.426 85.519 20.23} {334.968 41.2653 18.527} {417.471 104.757 21.9786} {707.274 117.378 54.9425} {358.487 74.1615 29.2686} {1232.58 103.945 38.5343} {1285.67 92.2144 36.1714} {351.428 101.709 36.8132} {1219.63 98.1635 23.9249} {524.364 89.7633 53.1358} {1101.72 137.351 26.8673} {290.06 40.238 43.7881} {923.622 136.376 29.7859} {428.997 76.2888 19.4159} {352.939 64.428 22.0824} {235.969 54.5909 52.2469} {158.948 72.9037 33.4662} {321.994 85.2855 40.4139} {1235.41 99.2007 40.665} {746.427 139.797 41.863} {85.3769 53.3149 10.7594} {505.14 63.674 50.7176} {205.121 71.1849 17.6733} {294.609 75.2331 45.4343} {745.772 88.7777 53.6008} {199.288 47.3607 44.4401} {299.597 79.6804 18.8225} {574.238 52.1662 23.3145} {1263.64 78.0038 37.7971} {929.276 126.526 24.5366} {1248.31 86.5324 28.8996} {793.097 75.3723 42.7529} {255.701 82.1778 29.5233} {320.762 75.7122 50.4706} {541.143 79.0484 16.0877} {228.066 35.1765 39.4884} {261.372 38.7844 25.2188} {1222.17 114.552 30.1623} {269.117 79.2626 31.4602} {277.881 91.9329 32.2659} {393.211 107.35 30.8236} {169.075 52.2598 14.6028} {331.013 95.5868 28.2277} {207.335 67.771 40.06} {293.403 74.7398 31.5674} {351.694 49.8384 37.4564} {1314.29 106.985 27.9335} {223.626 77.6409 13.7335} {1259.08 101.074 48.3079} {897.611 117.768 26.5613} {416.642 76.3907 24.3562} {187.663 80.3893 14.8971} {629.992 78.484 51.8407} {170.204 30.1559 15.2994} {235.267 71.3296 40.173} {371.808 100.538 15.7716} {758.718 138.929 23.2762} {210.036 73.7798 32.5725} {1237.72 87.9106 28.2501} {87.0575 67.6367 18.5667} {346.187 91.7553 36.2679} {671.316 114.226 54.3498} {1159.75 131.094 30.6701} {815.147 141.064 28.4578} {269.27 31.185 35.9603} {338.986 42.8235 47.9122} {206.738 62.9397 11.4454} {190.414 72.2701 13.5363} {1282.65 86.0929 35.1273} {399.801 82.1945 40.5935} {257.577 93.235 23.9354} {136.734 65.8891 33.8239} {298.045 67.9853 23.1161} {539.855 125.91 22.5781} {236.458 54.6958 51.6585} {1239.09 119.722 40.469} {410.819 94.7992 20.4044} {234.655 61.0753 18.2398} {825.736 134.212 40.65} {260.311 89.1244 28.7671} {1276.41 89.175 36.1175} {1093.75 134.165 28.9176} {472.877 105.851 18.4609} {146.746 80.5219 15.6946} {234.329 58.4687 52.4533} {404.401 54.8006 44.9437} {166.019 46.2404 33.4949} {409.213 100.428 28.3776} {1125.72 106.247 23.8271} {149.052 63.2381 29.5315} }
+	set costPerPatch { 161.416351 115.518341 108.737244 81.060814 118.803169 128.965652 145.214981 759.707642 115.157280 103.810478 101.833130 275.364441 222.874634 272.193024 98.800461 151.920212 111.880615 96.713364 250.693893 444.096130 145.784027 203.871750 299.328674 461.174347 145.586517 123.178970 141.963486 209.775650 294.736755 163.477081 90.751846 196.371109 177.136841 211.978928 154.220016 324.699921 90.263809 655.711060 117.628128 291.984924 183.647888 229.220032 95.708923 99.306343 285.920624 103.443962 158.195129 90.517731 130.487640 253.499649 173.184250 137.042969 194.952087 96.692444 394.614594 229.573715 138.846359 454.310883 300.126526 126.117531 137.014984 371.617889 324.394165 516.837646 292.447968 132.123062 449.135437 104.989975 171.566284 115.724182 615.401184 183.168228 326.129852 413.828003 108.161652 229.496994 483.668335 117.340927 1076.906982 708.572998 104.192444 108.023697 111.530479 325.553772 302.960083 133.004822 1193.979980 316.121216 208.548447 370.288086 90.703606 967.254089 330.857147 675.436523 559.245483 845.389038 92.349449 110.755852 97.874161 217.930283 138.662323 128.884369 94.015022 274.051910 363.979095 165.130707 670.306580 117.942909 120.410477 138.108566 205.201996 473.102722 253.606400 621.640747 193.232651 1232.963623 246.483368 920.182861 173.292908 1027.499756 189.941132 470.662018 176.843582 362.846069 157.054489 392.141876 202.167725 124.425880 288.601288 263.693726 254.351700 726.244080 190.930450 214.317719 121.746597 1262.360962 326.948944 479.755920 655.522095 618.916443 102.583199 132.366791 342.472656 294.479095 948.002258 1530.514771 532.273315 264.220581 297.333252 918.982361 461.568115 1053.192505 534.007812 654.802979 189.547699 290.552795 459.629547 170.434387 261.293610 196.040039 517.330688 1004.038818 179.557648 1025.288452 111.289711 961.708130 87.009712 152.522537 395.941406 578.835999 1878.592285 938.302246 506.399353 600.515991 187.306335 403.421295 728.779785 494.735535 174.313049 231.364288 1895.324219 112.199097 266.263489 585.272278 198.731598 114.864479 452.439697 531.440552 152.320862 232.029037 348.828369 563.928833 129.315475 791.865601 1063.366211 509.061981 633.711975 809.958435 224.857010 254.069122 1033.096069 255.660812 1967.754272 183.241180 787.128357 744.966919 500.117767 322.035095 1582.229126 185.086014 2095.564941 575.796143 107.644348 199.309006 354.726135 679.633179 171.735031 1115.201538 418.058502 557.736633 360.460388 165.111115 198.700027 543.377075 171.297501 194.648056 950.739380 1018.875549 120.754921 2900.888916 198.689056 1109.869507 575.771973 830.444885 336.713745 443.651367 960.575745 138.441406 230.488754 200.470764 968.800720 821.685547 213.134354 1246.792603 711.325195 782.196777 935.823547 631.160034 195.216934 1801.366577 435.994385 257.420746 1176.876221 216.193008 607.257385 388.188599 642.848450 1055.985596 1154.365601 980.192139 496.797455 240.986969 651.962830 946.893250 603.577759 668.300110 1536.584473 604.470459 1133.282227 664.627808 164.148346 485.076111 636.698914 301.153595 2034.668335 219.550934 244.569885 560.970032 375.646606 703.019897 1087.804321 115.794357 921.948486 592.555542 1136.759521 414.223969 397.467285 1311.551636 310.941010 451.620361 1380.034546 327.192413 274.652924 1290.145996 385.443237 1597.913818 1400.165527 525.498230 302.705536 1129.836914 2282.192139 1292.118408 1795.643677 236.455231 125.043556 1395.314453 1126.101929 216.965744 503.825073 516.219421 615.444702 547.234497 611.580872 1441.755127 965.191223 574.158569 1981.589844 1963.331665 1144.270630 1325.804932 664.212769 309.239532 806.458008 1446.651489 1069.065674 1080.067017 945.320374 673.162903 698.977783 747.587708 200.466354 279.742004 2727.017822 235.000610 686.914001 773.589294 1189.783936 1269.572021 1236.452393 1496.487793 916.804749 633.004456 231.447678 1048.333130 1401.181885 1330.570312 154.993729 1075.412720 782.158142 794.042786 289.064117 793.377563 1625.730957 415.758606 1231.452759 421.658813 819.823425 362.979889 564.013550 1976.293213 410.480988 142.849640 902.834290 2800.625977 144.342438 160.343719 904.300415 1727.226074 503.499268 1053.081177 1277.703491 803.117676 1547.169434 1371.779785 886.580627 1158.230225 1078.575928 1302.180298 1366.016968 1685.567139 990.837036 382.226440 2259.745117 2642.229980 2216.071045 1801.072388 333.972046 771.428223 661.621826 1975.566406 2388.242432 1291.920044 2835.976074 1996.956055 1375.639038 377.479980 533.304138 1031.762573 311.062164 680.105774 1081.645142 134.876129 1183.882080 2105.394043 1093.034302 379.811768 792.890991 1060.092407 1541.335571 772.808655 1074.466431 2190.790527 1854.949219 12498.783203 1547.525146 1240.552856 1134.803101 949.953247 613.030762 1791.016357 2842.919189 1620.878662 2389.638184 310.411713 1895.131592 814.514038 443.795807 642.043884 1146.427246 1805.107666 1450.638428 661.871216 1179.038940 204.097305 3138.446289 1598.241821 1440.892578 1631.921509 156.495193 1924.041260 2223.406738 1238.245850 455.238007 1443.919922 2225.935547 1422.666382 1182.495361 403.647095 1537.272339 1481.896729 1295.538330 2149.150146 1084.859253 3677.355469 547.582214 1226.766724 1597.415894 1959.449097 982.503357 1221.941284 1798.359497 1551.873779 750.529907 1910.921143 1298.480103 523.497070 2114.653076 2422.767090 942.594849 3416.101807 1916.167236 2941.085205 2042.431152 1320.397217 1835.847656 1082.979980 2303.241699 454.692841 2101.031982 876.996643 1819.708496 733.140381 1041.665161 627.437988 995.976074 1064.030640 2030.256836 2258.387207 3350.443359 2769.506104 1723.190186 2184.249512 1559.019775 1157.086060 3142.161865 7845.034180 1247.570312 1400.316895 1694.468750 1743.971436 493.263336 }
+
+	sortEllipses
+		set maxEllipse [ expr { [llength $sortedPatchList] - 1 } ] 
+		set endIdx [ lindex $sortedPatchList $maxEllipse ] 
+		set maxOrigCost [ lindex $costPerPatch $endIdx ]
+
+	checkEllipse 0
+}
+
+proc initTestLists552 {} {
+	global sortedPatchList
+	global costPerPatch
+	global centerList
+	set costPerPatch { 161.416351 111.160088 115.518341 118.886253 128.965652 80.678490 115.157280 145.214981 103.828178 101.833130 961.129944 222.995667 231.663528 110.981506 272.193024 151.920212 98.800972 281.592804 96.713364 258.620880 145.784027 203.871750 444.096130 360.308044 324.699921 145.586517 299.211060 177.136841 294.736755 90.780594 196.471619 163.477081 291.984924 141.963486 119.774979 154.220016 211.978928 633.832275 90.263809 99.640739 285.920624 95.708923 229.220032 90.517731 158.195129 504.780029 173.184250 130.487640 137.042969 194.902481 295.431030 300.126526 394.614594 126.117531 96.692444 111.530479 524.829163 138.817230 413.603790 454.310883 292.447968 371.617889 324.394165 189.883469 132.814148 183.722107 115.724182 171.566284 103.320992 175.255707 326.129852 449.135437 302.960083 708.279236 1076.906982 483.668335 292.930939 279.615112 229.366394 316.121216 130.351944 967.254089 108.023697 127.356956 106.080284 217.930283 219.201157 242.714767 865.772095 138.662323 675.436523 196.537186 484.388184 621.640747 363.979095 193.232651 926.801697 92.349449 111.535065 103.906059 1232.668091 670.395508 362.983734 253.606400 310.204651 173.901199 473.102722 162.184052 117.870926 176.692581 130.414871 551.342346 470.662018 172.812500 401.119598 263.705322 254.351700 288.601288 1262.360962 804.090210 157.054489 104.303566 505.545135 186.066010 379.132172 121.746597 342.572784 294.479095 701.789978 744.040039 106.947495 918.982361 323.433472 110.970528 461.568115 1053.168823 452.439697 534.007813 670.819641 178.437775 998.950317 214.317719 152.841370 172.099533 96.567139 192.671509 1878.592285 1029.997559 938.302246 134.633148 93.782333 264.785522 494.735535 231.364288 174.313049 1116.186523 229.863022 506.399353 266.263489 188.449646 316.335327 578.835999 877.064087 186.619141 338.566406 102.732628 196.212723 1656.498413 198.731598 782.704895 516.054260 633.552673 128.269424 324.387634 315.173279 744.966919 409.924530 199.309006 1752.432739 104.817062 109.203018 585.272278 112.913254 709.578857 699.959045 362.022858 571.935852 1167.752686 198.700027 171.735031 171.297501 392.444336 956.029724 186.317169 444.413696 1268.630249 201.552109 575.772339 138.453979 158.109253 116.776169 839.649780 1246.792603 843.282227 213.134354 1109.792603 711.325195 183.241745 942.943787 86.600983 1128.367676 257.420746 980.192139 954.718384 624.214233 607.257385 1049.888306 123.149429 195.094055 172.968826 1182.969238 388.634918 148.289825 597.899353 313.760010 533.754395 146.355194 2022.233032 603.577759 180.677246 817.342163 583.911316 191.980942 651.962830 1131.317017 108.985031 642.848450 625.611328 566.325684 604.470459 1371.854980 594.769531 212.401779 248.092911 286.271393 775.423706 396.977051 485.076111 781.845703 115.317741 592.743042 786.260559 260.843414 320.504425 336.796967 251.245377 443.969238 208.937881 451.620361 614.121582 1399.950928 1401.181885 881.350769 586.759155 1133.282227 1281.174072 133.295029 1039.189941 277.421722 227.456284 195.995422 150.513199 1228.343872 503.880554 303.182770 224.702011 757.078430 1907.336182 401.773285 1441.755127 199.293228 1795.643677 722.712402 1308.725220 1637.153320 994.094604 806.458008 1144.270630 991.713562 485.016663 1434.291504 1032.102783 278.308868 1625.730957 358.794952 821.196045 200.222809 1575.708130 198.853760 983.303650 973.038757 944.002319 165.774536 633.103271 860.638367 706.830872 357.680084 865.350037 773.166016 808.711121 1058.580200 877.869263 259.177032 1409.400513 1385.763428 329.169891 1317.313232 940.909607 2552.422852 727.650940 275.842743 662.062866 103.789268 904.300415 131.847534 125.345634 594.889954 1053.162842 492.559998 1425.168213 603.040405 1366.016968 2143.283447 1514.883179 657.790894 681.945007 2298.044434 764.823792 744.288269 564.905823 458.002350 915.242981 279.387909 2800.625977 568.175293 1517.338257 639.411987 1562.097168 192.690521 1164.970581 1055.642090 337.325165 1475.297729 109.304428 1465.283691 919.872009 1830.121216 271.668823 1977.579712 1530.045654 1391.317749 3801.474121 1146.427246 1156.533447 756.411682 2846.806396 1445.119141 892.310303 409.527008 1605.053589 1690.140381 310.953522 2214.822021 2177.974854 1148.888428 1620.878662 2139.612793 2530.004395 1959.449097 635.076660 1420.696655 1685.568604 845.973511 1057.823486 441.985443 1066.658325 2040.335693 2114.056885 150.717773 507.820984 581.680603 1836.911133 396.356873 809.796265 1136.732666 3403.337402 1320.397217 624.376465 147.257111 1274.485962 1267.180298 794.872681 2434.021484 692.019104 791.483582 534.916321 1439.407837 2368.831299 1082.979980 1181.158936 1372.916138 1050.934570 199.996918 155.919373 1016.906677 713.479492 1877.720703 3350.406982 407.945770 2839.178955 1874.344849 1048.052002 2083.684326 1313.122925 2524.424316 1376.999878 135.173035 1075.293823 1737.509521 1475.486206 2291.401367 1052.817993 483.919037 3352.245117 2448.464844 1650.409790 1604.265259 1894.446655 1527.908569 2476.142822 537.537659 882.078247 1337.124878 1042.194092 2193.235596 419.653961 2510.575928 1614.320313 128.556808 2222.820557 718.265076 476.205017 2347.631836 1830.342529 2323.502197 490.536987 536.874573 1572.027588 966.277710 1471.438110 1400.259888 1626.909546 1779.591187 3246.006592 2603.626221 736.540771 2231.095703 1998.755493 3306.492432 1949.997559 2505.067383 1499.834595 609.527710 1064.730713 893.562134 1037.584229 1368.769897 1799.889648 2720.415527 1418.898804 2591.402344 979.186462 2398.973877 2017.346924 3101.602295 482.634003 798.516541 1210.472046 1205.993286 193.661148 426.271484 1591.770020 737.660339 2069.381348 2511.852295 2915.231201 2878.240234 1756.364868 2693.849121 2413.114746 1826.463257 2160.282715 2835.745117 1085.113159 2504.430420 1705.551392 1199.991943 2918.134277 2791.888916 902.508179 1327.695923 2032.504150 1410.607910 1255.354370 1242.701172 1570.754639 2667.830811 2935.828125 2906.867432 1816.780884 639.958130 2127.959473 2204.056641 1199.605591 1884.682617 876.859009 363.047394 550.127747 1044.828979 372.866608 4838.108887 190.476730 3984.061523 1337.216309 1292.954346 1355.969116 671.163696 3539.408691 1912.789429 2693.159668 4116.100098 2836.027832 1871.550659 645.774658 4526.255371 1565.514404 2761.713135 7185.366699 2277.429688 2918.074219 2251.204590 1678.949829 }
+	set centerList { {179.082 57.8795 8.18896} {1095.75 95.2483 24.5007} {1282.52 77.7898 26.0474} {1043.6 82.9963 23.5141} {1308.8 105.748 38.9098} {721.125 75.7056 20.025} {1060.4 87.0605 23.8678} {1072.61 91.8865 24.613} {1303.97 94.523 26.5914} {1072.34 81.2413 30.6747} {1239 98.2356 24.0267} {1322.19 90.0886 28.8456} {1003.79 125.014 24.8258} {611.699 132.939 23.2953} {1119.19 128.008 26.4213} {323.788 57.9408 13.5092} {361.612 47.8852 33.1902} {217.54 64.2415 15.0121} {890.487 143.938 25.0509} {471.322 115.161 24.5038} {1389.28 99.1417 26.8953} {380.365 79.8117 10.1772} {1206.03 126.185 27.0782} {432.803 107.035 29.8729} {944.732 93.5172 22.0155} {311.03 51.6262 14.2189} {902.063 141.781 25.8853} {445.245 115.58 21.5128} {1251.95 106.124 31.759} {365.791 38.9611 15.8123} {366.792 53.9703 10.0793} {1156.77 121.908 24.9626} {673.695 137.316 23.0464} {643.927 135.328 23.3694} {1046.99 123.585 23.7701} {393.87 98.9239 38.8363} {322.853 93.7861 18.4781} {1280.15 92.9755 46.9565} {177.119 36.5751 35.5681} {1157.68 81.5 32.4863} {297.06 54.9777 12.5456} {216.761 21.8505 24.1561} {1333.26 92.1975 27.9258} {249.665 24.259 24.9225} {1111.86 136.068 27.8906} {687.14 96.528 17.3767} {1293.69 82.3362 34.0006} {568.242 128.537 22.1283} {165.773 42.6258 42.6501} {364.967 58.1899 23.0533} {875.332 144.342 25.8557} {363.115 57.8102 47.7267} {859.178 103.741 20.3231} {199.421 23.4904 25.5601} {194.756 47.106 14.6161} {695.15 138.449 25.1929} {1085.76 115.951 57.7242} {890.933 108.745 23.1331} {1059.33 137.917 26.6231} {880.787 135.553 50.7952} {1273.62 101.748 33.7022} {1236.69 108.581 46.2342} {335.496 76.4404 16.2579} {365.988 79.0728 11.6356} {740.851 142.274 25.5839} {314.169 66.1639 13.3079} {284.439 48.7998 10.018} {1271.76 80.5363 26.0825} {644.999 64.9913 20.6318} {185.918 66.8662 41.9566} {331.057 67.275 17.3565} {1059.81 112.375 56.1384} {1124.67 97.1757 51.9754} {260.242 67.2639 14.5211} {339.227 88.8321 39.8376} {248.81 50.8697 14.8307} {640.182 96.1142 16.8024} {303.102 42.1939 17.6188} {1073.83 97.7002 55.8438} {370.315 51.1374 47.9379} {351.845 77.645 18.1911} {263.055 71.6572 41.7432} {425.486 49.9279 15.866} {153.02 50.2116 44.693} {443.162 71.4933 15.2487} {793.742 142.887 25.1069} {977.94 129.396 24.5895} {217.27 64.9436 39.2253} {146.4 28.2006 22.2695} {1404.45 98.7446 26.8614} {1268.72 85.2854 41.3059} {625.828 134.495 23.0177} {840.194 131.219 22.4938} {725.801 98.5882 18.1821} {180.212 34.052 19.0342} {1255.98 117.804 29.6954} {611.142 121.157 48.5817} {715.971 141.477 25.3835} {392.487 59.9922 13.36} {1031.31 137.563 26.3044} {385.995 112.437 21.1914} {172.534 70.1687 12.6813} {1032.24 87.6254 26.3725} {325.131 62.4647 51.0292} {1216.64 124.028 37.4153} {1198.99 86.2194 34.0408} {161.965 58.199 9.80554} {1197.7 114.084 25.0729} {386.395 91.0699 46.2664} {162.088 31.537 26.3058} {728.91 142.3 26.4654} {818.452 101.77 19.1557} {400.55 103.022 22.4603} {822.799 144.652 24.7257} {1341.13 101.231 28.6479} {343.816 55.4156 43.5478} {346.382 53.5687 15.6434} {1021.89 138.618 37.6934} {401.818 89.9713 49.0772} {178.801 60.1743 45.4609} {337.9 62.9974 52.5235} {394.029 87.6627 12.8573} {769.835 100.104 19.6125} {392.324 75.2114 16.745} {924.374 106.36 20.6318} {276.783 68.0881 51.2581} {319.094 33.8364 24.1254} {520.229 80.5275 18.3534} {1245.71 84.2962 44.5198} {987.022 99.2833 21.6257} {153.188 37.5911 11.8075} {389.905 105.433 18.1167} {1290.67 103.035 41.3573} {418.487 39.6554 23.2402} {511.457 73.9103 15.5621} {1273.52 103.411 46.079} {1177.22 95.9915 24.7481} {346.977 70.3217 12.8467} {380.737 94.9823 20.6178} {994.774 76.5568 28.9419} {425.785 106.846 19.6113} {511.908 91.213 50.7304} {514.685 106.254 16.1079} {304.804 62.1427 46.8582} {368.549 82.9477 33.3275} {353.262 104.731 21.0611} {1326.54 95.1097 36.5453} {328.06 39.9575 36.8797} {292.795 32.6811 18.4605} {406.235 81.3925 12.339} {236.528 49.8108 30.1914} {351.991 81.336 42.2821} {1115.84 136.658 40.0898} {1258.09 92.337 39.9704} {293.833 49.7264 44.1147} {1031.94 105.242 58.8429} {459.752 112.093 23.5025} {421.648 70.4267 11.7197} {1263.35 108.839 44.5876} {119.881 26.0072 18.4066} {895.26 138.699 41.0613} {406.519 108.218 31.9051} {155.675 21.2431 23.5294} {368.158 87.2516 45.81} {852.084 144.576 25.3674} {312.596 40.2932 37.925} {1248.3 97.7785 48.1425} {333.906 33.811 26.3667} {1150.1 131.955 29.5655} {328.135 93.017 38.4365} {422.035 96.7595 22.4726} {191.891 48.5064 38.2101} {195.113 70.0679 25.1648} {1246.49 116.954 35.2872} {950.945 137.71 27.0786} {295.873 38.0613 35.6726} {314.588 68.7504 39.1407} {806.613 141.892 27.7575} {241.124 81.6207 31.7881} {465.541 73.3948 15.6153} {219.93 44.0195 28.3437} {832.39 141.496 28.2763} {357.929 34.9513 32.1294} {165.588 60.1447 42.2072} {1046.67 138.175 27.2025} {371.531 72.7202 47.7201} {1040.9 135.656 43.3953} {499.552 123.287 22.6554} {1123.15 136.735 28.4769} {992.093 138.822 26.1872} {1169.45 132.59 26.7981} {311.091 54.3204 46.6558} {345.295 35.6786 20.0637} {376.455 106.304 20.5364} {245.831 91.5877 22.5893} {247.383 48.5892 41.8125} {1229.77 124.269 24.9816} {113.61 36.4579 9.56278} {804.982 74.3654 29.5764} {653.572 133.972 21.4282} {751.305 141.879 26.5478} {940.578 138.348 24.2989} {324.78 71.3396 12.1759} {1180.15 129.489 28.665} {334.565 53.7877 15.4792} {325.898 69.4724 42.7014} {305.773 75.6395 25.9996} {368.34 92.0383 24.7645} {1368.67 98.0562 27.3314} {208.247 86.7311 21.7736} {1214.34 118.386 28.6971} {348.923 61.9292 54.1067} {1045.02 111.032 57.145} {1169.35 132.124 42.0075} {553.9 126.693 35.9301} {241.009 63.5115 48.8351} {1252.28 109.992 47.9975} {376.375 95.9017 36.497} {206.545 58.1781 50.6931} {236.711 47.0746 13.5308} {1272.28 94.7277 25.0821} {395.942 60.7319 53.7597} {388.662 85.3499 29.2096} {411.213 88.6432 44.6778} {771.113 140.192 27.3131} {329.225 82.0595 28.9696} {353.674 47.922 17.5201} {1336.55 96.0515 36.9765} {321.076 45.7403 19.6827} {481.967 111.687 27.0567} {340.157 86.5415 26.4431} {1012.04 136.768 25.8668} {1262.15 95.053 26.4075} {683.938 137.679 25.4109} {1306.62 91.1129 38.2618} {112.624 49.436 40.8935} {232.957 57.8375 8.86238} {68.9672 66.669 16.2603} {236.374 37.264 21.1603} {1259.99 83.9472 27.243} {294.677 46.5765 18.8705} {313.214 88.7077 18.7021} {371.426 59.1472 59.2111} {207.501 58.8373 35.7719} {137.276 34.5821 34.3772} {313.883 67.0475 51.2161} {668.867 80.9631 17.8384} {491.204 114.379 40.0645} {298.224 28.5198 29.2543} {190.185 37.9612 40.2685} {350.927 75.9862 54.4918} {197.114 31.6813 18.7141} {584.114 123.059 17.8021} {321.307 49.265 44.696} {784.04 138.862 29.6664} {286.987 63.5491 8.6738} {1298.55 96.7007 39.9938} {214.925 43.5796 47.4049} {446.091 85.1317 52.3737} {372.789 47.3162 33.88} {1208.1 84.7737 34.0872} {468.164 91.3456 22.7137} {356.204 87.6933 36.1481} {61.3848 30.2991 14.3084} {391.299 48.2692 34.5255} {414.509 53.4977 34.1077} {544.472 125.415 22.759} {334.549 92.2763 18.1235} {251.246 62.4013 46.3917} {1044.8 92.7355 27.0114} {430.962 41.9992 39.5742} {525.922 51.1254 18.2876} {1186.17 121.077 34.99} {363.466 103.589 24.1448} {371.594 74.0896 20.6338} {406.471 77.6093 32.0093} {459.321 78.825 53.7742} {1229.99 92.5157 27.2562} {257.725 41.2146 10.7884} {596.503 73.1395 17.2356} {287.625 62.3027 50.7168} {1193 114.987 53.3994} {1044.97 104.659 22.4671} {906.321 125.573 25.4248} {303.206 32.3788 19.2728} {224.597 78.6274 37.4801} {240.99 63.537 13.6575} {299.137 79.9343 36.6525} {278.06 92.0614 17.4708} {931.376 137.06 26.0338} {542.587 120.024 40.4322} {819.987 85.851 19.5986} {1203.45 127.688 40.3983} {961.536 94.5121 53.654} {413.726 67.3595 48.6735} {788.454 131.312 21.0936} {310.19 75.3735 47.1717} {145.966 18.5921 22.5524} {257.393 50.8974 15.0834} {245.87 44.0218 22.1612} {206.624 41.705 20.9512} {264.768 55.008 10.2296} {102.016 24.3431 19.4381} {397.468 53.7117 18.0399} {372.484 51.9684 21.3487} {226.743 35.6946 17.658} {112.116 70.5367 20.1748} {757.52 72.8128 25.1032} {183.733 78.0756 32.4787} {338.893 44.6907 40.3603} {968.251 138.862 25.9968} {968.305 138.741 42.022} {912.217 138.002 27.8079} {658.937 121.342 19.2012} {635.067 134.399 24.2231} {316.528 24.0112 27.5806} {357.153 72.443 41.6399} {349.958 63.0886 12.8713} {650.459 116.268 51.237} {266.039 77.2529 21.651} {331.352 78.3612 45.9787} {181.708 72.8891 16.8966} {1014.49 76.3557 33.953} {661.648 138.242 23.1583} {700.096 68.2473 23.9934} {208.875 51.8176 10.1774} {136.36 70.9379 20.1532} {393.137 95.5293 22.3685} {216.074 33.6743 18.4738} {600.101 99.6211 54.8017} {444.712 112.048 35.6963} {1132.04 135.884 28.691} {416.292 62.4895 20.0314} {304.732 37.5666 33.3197} {155.359 77.8842 19.9051} {1141.62 134.653 27.8615} {1011.72 135.125 44.1309} {319.846 82.1777 24.5602} {1289.8 94.0737 26.9269} {277.714 84.2685 23.7864} {351.196 101.745 36.366} {346.683 56.3388 25.923} {285.757 29.7785 29.2283} {898.427 126.507 53.1305} {974.509 82.7524 47.6905} {416.412 79.3429 38.7741} {295.407 68.0238 37.2413} {1115.63 107.38 24.2711} {347.509 71.1137 34.0262} {318.105 75.2304 33.623} {310.763 90.1974 36.7745} {618.029 130.449 41.1663} {541.226 79.0855 16.3347} {527.242 123.561 22.5735} {236.334 75.7026 19.913} {414.666 112.094 23.8053} {334.971 41.3041 18.4457} {182.269 59.0262 33.6961} {386.111 102.37 27.129} {707.349 117.462 55.0424} {867.714 90.6382 54.8178} {421.09 61.2861 30.545} {321.994 85.2855 40.4139} {365.105 100.356 36.1701} {247.833 68.6315 17.5528} {524.359 89.7629 53.1478} {429.246 76.0461 19.682} {565.961 78.5634 55.555} {501.443 116.984 24.8047} {1234.9 96.5132 37.7814} {1219.63 97.9839 24.1393} {675.885 138.836 37.7244} {320.749 75.6999 50.5035} {258.201 89.1453 27.3799} {208.115 62.9331 11.0734} {1101.72 137.351 26.8673} {671.367 114.205 54.3278} {392.686 107.277 30.8957} {1314.29 106.985 27.9335} {435.641 90.2884 51.8309} {1258.82 101.853 50.5042} {603.053 79.2439 16.788} {211.794 38.9218 9.01675} {210.11 73.1587 32.5614} {135.827 42.1974 19.6536} {232.422 28.2821 20.6571} {630.046 78.1708 51.9717} {371.816 100.494 15.7229} {230.096 44.2462 44.4426} {235.284 71.3812 40.3268} {900.922 74.8888 25.838} {1263.72 78.1132 37.7314} {923.498 136.277 29.2419} {761.465 139.946 32.4593} {393.697 75.2654 51.8343} {330.423 95.3482 28.3904} {1159.75 131.094 30.6701} {207.845 67.7016 40.7788} {514.307 120.444 23.4464} {159.041 59.3025 32.7408} {277.822 91.85 32.2633} {714.863 94.3131 56.3335} {294.649 74.4268 45.5412} {200.509 36.7081 11.4387} {801.264 141.913 39.6697} {261.113 39.0641 25.7033} {223.119 77.6387 13.7965} {190.284 72.333 13.6957} {269.27 31.185 35.9603} {328.707 73.6816 33.7484} {1222.39 114.813 29.1903} {358.44 73.6866 29.8619} {95.5498 54.089 11.9069} {574.255 52.1665 23.2842} {137.251 59.7299 14.8238} {188.65 80.6703 14.4005} {318.632 51.9134 54.217} {234.655 61.0753 18.2397} {474.156 79.4036 53.8983} {1271.43 112.71 41.1424} {1276.54 89.0332 36.2084} {230.373 34.8203 38.3124} {831.006 126.153 43.6108} {746.392 139.943 41.6566} {825.875 135.69 41.9605} {353.45 63.8911 22.8484} {208.243 30.0515 36.0797} {472.229 104.978 20.9993} {745.494 88.7463 53.0803} {1247.49 85.812 29.8585} {584.706 82.8888 15.5811} {505.173 63.356 50.5849} {149.374 41.7675 22.8176} {1237.96 88.4196 29.4862} {1044.17 125.476 52.0962} {299.64 79.596 19.2198} {117.049 23.8894 25.6866} {428.171 86.4236 49.3944} {1285.32 90.9736 37.0046} {668.501 74.7892 47.9688} {298.035 68.0177 22.9435} {233.65 56.9218 52.3663} {170.927 30.4639 14.2005} {242.648 41.0189 39.8913} {515.782 115.89 41.6593} {337.805 59.6998 25.5694} {290.17 40.3065 43.8765} {897.318 118.64 25.8251} {1075.15 135.937 29.1915} {1293.67 84.8927 23.2458} {840.338 91.4466 20.3968} {164.637 45.9907 32.4091} {165.509 37.0157 12.4324} {257.648 56.6517 46.0087} {928.521 126.529 24.4053} {141.313 62.1137 29.037} {96.6885 55.0652 30.4264} {230.638 82.9409 27.3489} {169.167 52.2513 14.5239} {343.91 71.6373 46.436} {1093.57 134.271 28.7614} {1133.32 123.063 49.6547} {249.097 75.7081 22.0405} {241.05 72.8646 33.1539} {326.355 86.2099 17.8372} {271.072 79.6778 32.2048} {1081.16 137.559 40.1822} {1126.71 106.498 23.9217} {753.956 125.292 54.1138} {307.886 84.2864 28.4783} {294.985 65.5865 48.589} {350.924 50.4346 36.4041} {446.372 38.1578 27.1555} {404.341 54.7973 45.0493} {255.882 44.5533 41.8371} {409.063 94.9544 21.7893} {302.819 51.01 46.4387} {815.155 140.976 28.6538} {1039.07 92.1195 52.6563} {87.7709 67.7258 19.3027} {1020.85 134.474 28.9439} {157.136 51.5624 14.9157} {1279.9 89.1684 25.4604} {711.839 130.37 20.8179} {315.298 82.9841 33.1235} {148.656 62.7382 15.8911} {208.171 40.8682 39.2292} {416.353 103.589 23.0323} {352.087 63.1896 44.0696} {211.574 71.9953 19.8809} {793.095 75.5462 43.3073} {409.253 100.782 29.3151} {204.231 71.291 16.9092} {388.064 87.065 56.6949} {857.251 138.626 32.5956} {329.216 47.3095 24.3566} {1196.73 119.483 37.4905} {318.668 70.1289 23.9529} {416.534 107.059 34.9668} {421.789 80.8947 55.8418} {585.543 130.241 25.1329} {136.441 28.0643 14.9701} {1251.3 98.2215 24.6307} {326.021 40.9827 12.4155} {350.419 41.7818 41.3378} {1234.24 123.259 35.7253} {283.029 26.6419 17.7987} {641.561 112.752 53.8906} {306.79 70.5435 17.3874} {99.8026 38.7972 23.8568} {1231.36 112.089 28.7088} {416.414 77.3014 24.2986} {1001.11 135.047 29.0167} {253.292 71.169 34.7038} {197.059 23.5381 13.9153} {399.819 82.1335 40.641} {289.436 40.7079 23.0176} {340.291 49.6204 24.3997} {295.626 55.329 50.0068} {291.177 72.1956 25.2208} {197.012 60.6461 37.1929} {978.832 138.644 26.5904} {257.992 78.6252 25.0077} {420.842 60.621 40.601} {481.738 55.3515 26.1553} {152.215 44.5761 33.0486} {129.617 65.9713 34.3105} {141.568 67.4002 35.4428} {476.546 108.128 17.573} {111.688 54.1365 11.5561} {471.85 99.6972 38.4326} {88.1077 38.4197 21.9665} {811.79 135.362 35.6541} {131.246 65.574 10.1258} {203.59 53.3465 42.9201} {792.118 110.858 55.3012} {85.441 53.4192 10.7661} {251.966 80.7086 30.0545} {263.368 39.9241 36.688} {1085.44 134.752 28.96} {401.947 80.2559 21.616} {410.134 96.713 39.6103} {73.3684 27.0247 17.9419} {201.937 73.8569 33.3822} {838.361 132.668 33.8313} {209.745 62.0937 22.1797} {1226.02 120.782 40.4013} {208.845 79.6288 19.1215} {99.2646 68.2356 13.2494} {556.799 98.112 54.2147} {758.405 139.008 22.9199} {340.464 70.7917 22.7404} }
+	sortEllipses
+		set maxEllipse [ expr { [llength $sortedPatchList] - 1 } ] 
+		set endIdx [ lindex $sortedPatchList $maxEllipse ] 
+		set maxOrigCost [ lindex $costPerPatch $endIdx ]
+
+	checkEllipse 0
+}
+
+
